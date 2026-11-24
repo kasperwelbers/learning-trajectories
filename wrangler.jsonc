@@ -1,0 +1,48 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "learning-trajectories",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/s/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "learning-trajectories",
+      // Replace with the id printed by `wrangler d1 create learning-trajectories`
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "FILES", "bucket_name": "learning-trajectories-files" }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "PROGRAMME_HUB", "class_name": "ProgrammeHub" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ProgrammeHub"] }],
+  "workflows": [
+    {
+      "name": "analysis-workflow",
+      "binding": "ANALYSIS_WORKFLOW",
+      "class_name": "AnalysisWorkflow"
+    }
+  ],
+  "send_email": [{ "name": "EMAIL" }],
+  "vars": {
+    "EMAIL_FROM": "noreply@example.org",
+    // "openai-compatible" (Gemini, AI Gateway compat endpoint, ...) or "anthropic"
+    "AI_PROVIDER": "openai-compatible",
+    "AI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "AI_MODEL_EXTRACT": "gemini-flash-latest",
+    "AI_MODEL_LINK": "gemini-pro-latest",
+    "LOG_OTP_CODES": "false",
+    // Comma-separated e-mail addresses that become server admins when they log in
+    "ADMIN_EMAILS": ""
+  }
+  // Secrets (set with `wrangler secret put`): AI_API_KEY
+}

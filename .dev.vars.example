@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local development.
+AI_API_KEY=your-gemini-api-key
+LOG_OTP_CODES=true
+ADMIN_EMAILS=you@example.org
