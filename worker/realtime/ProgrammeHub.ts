@@ -8,7 +8,7 @@ import type { HubMessage, Topic } from "@shared/topics"
  * Uses the WebSocket Hibernation API, so idle connections cost nothing.
  */
 export class ProgrammeHub extends DurableObject<Env> {
-  override async fetch(request: Request): Promise<Response> {
+  override fetch(request: Request): Response {
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected WebSocket", { status: 426 })
     }

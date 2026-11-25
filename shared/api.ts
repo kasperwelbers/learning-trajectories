@@ -143,6 +143,8 @@ export const updateLtoBody = z.object({
   version,
 })
 
+export const reorderBody = z.object({ ids: z.array(z.number().int()).min(1).max(500) })
+
 export const importLtosBody = z.object({
   rows: z
     .array(

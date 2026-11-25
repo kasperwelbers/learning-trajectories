@@ -39,8 +39,8 @@ export class AnthropicClient implements LlmClient {
     }
     const message = messageSchema.safeParse(JSON.parse(text))
     if (!message.success) throw new InvalidModelOutput("Unexpected response from Anthropic", text)
-    const toolUse = message.data.content.find((block) => block.type === "tool_use")
-    if (!toolUse || toolUse.type !== "tool_use") {
+    const toolUse = message.data.content.find((block): block is ToolUseBlock => block.type === "tool_use")
+    if (!toolUse) {
       throw new InvalidModelOutput(`The model did not call the tool (stop reason: ${message.data.stop_reason ?? "?"})`, text)
     }
     const parsed = request.schema.safeParse(toolUse.input)
@@ -79,6 +79,12 @@ function toBlock(part: ContentPart) {
         title: part.filename,
       }
   }
+}
+
+interface ToolUseBlock {
+  type: "tool_use"
+  name: string
+  input: unknown
 }
 
 const messageSchema = z.object({

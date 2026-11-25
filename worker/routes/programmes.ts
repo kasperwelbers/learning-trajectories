@@ -97,7 +97,7 @@ programmeRoutes.patch("/", validate("json", updateProgrammeBody), async (c) => {
     .set({ ...changes, version: sql`${programmes.version} + 1` })
     .where(and(eq(programmes.id, id), eq(programmes.version, version)))
     .run()
-  await assertVersionedUpdate(result, async () => true)
+  await assertVersionedUpdate(result, () => Promise.resolve(true))
   notify(c, "programme", "courses", "coverage")
   return c.json({ ok: true })
 })

@@ -4,6 +4,7 @@ import {
   createLtoBody,
   createTrajectoryBody,
   importLtosBody,
+  reorderBody,
   updateLtoBody,
   updateTrajectoryBody,
   type ImportLtosResponse,
@@ -194,6 +195,35 @@ structureRoutes.post("/trajectories/:tid/ltos", validate("json", createLtoBody),
   }
 })
 
+/** Set the order of a trajectory's LTOs (ids in the new order). */
+structureRoutes.post("/trajectories/:tid/ltos/order", validate("json", reorderBody), async (c) => {
+  const db = c.get("db")
+  const trajectoryId = intParam(c.req.param("tid"))
+  requireTrajectoryEditor(c, trajectoryId)
+  await getTrajectory(db, c.get("programmeId"), trajectoryId)
+  const { ids } = c.req.valid("json")
+  const [first, ...rest] = ids.map((id, position) =>
+    db.update(ltos).set({ position }).where(and(eq(ltos.id, id), eq(ltos.trajectoryId, trajectoryId))),
+  )
+  if (first) await db.batch([first, ...rest])
+  notify(c, "structure")
+  return c.json({ ok: true })
+})
+
+/** Set the order of the programme's trajectories (ids in the new order). */
+structureRoutes.post("/trajectories/order", validate("json", reorderBody), async (c) => {
+  requireAdmin(c)
+  const db = c.get("db")
+  const programmeId = c.get("programmeId")
+  const { ids } = c.req.valid("json")
+  const [first, ...rest] = ids.map((id, position) =>
+    db.update(trajectories).set({ position }).where(and(eq(trajectories.id, id), eq(trajectories.programmeId, programmeId))),
+  )
+  if (first) await db.batch([first, ...rest])
+  notify(c, "structure")
+  return c.json({ ok: true })
+})
+
 structureRoutes.patch("/ltos/:lid", validate("json", updateLtoBody), async (c) => {
   const db = c.get("db")
   const programmeId = c.get("programmeId")
@@ -211,7 +241,7 @@ structureRoutes.patch("/ltos/:lid", validate("json", updateLtoBody), async (c) =
       .set({ ...changes, version: sql`${ltos.version} + 1` })
       .where(and(eq(ltos.id, id), eq(ltos.version, version)))
       .run()
-    await assertVersionedUpdate(result, async () => true)
+    await assertVersionedUpdate(result, () => Promise.resolve(true))
   } catch (error) {
     if (isUniqueViolation(error)) throw duplicateCode()
     throw error

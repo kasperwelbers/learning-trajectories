@@ -46,6 +46,13 @@ export default tseslint.config(
     rules: reactHooks.configs.recommended.rules,
   },
   {
+    // Scripts run in Node with their own tsconfig.
+    files: ["scripts/**/*.ts"],
+    languageOptions: {
+      parserOptions: { projectService: false, project: ["./tsconfig.scripts.json"] },
+    },
+  },
+  {
     files: ["eslint.config.js"],
     ...tseslint.configs.disableTypeChecked,
   }

@@ -38,7 +38,7 @@ describe("AI clients", () => {
   })
 
   it("maps provider responses to results and errors", async () => {
-    const reply = (status: number, body: unknown) => async () => new Response(JSON.stringify(body), { status })
+    const reply = (status: number, body: unknown) => () => Promise.resolve(new Response(JSON.stringify(body), { status }))
     const ok = new OpenAiCompatibleClient("https://x", "k", reply(200, { model: "m1", choices: [{ message: { content: '{"answer":null}' } }] }))
     await expect(ok.generate(request)).resolves.toEqual({ data: { answer: null }, model: "m1" })
 

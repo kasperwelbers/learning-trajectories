@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm"
 import { Hono } from "hono"
+import { createMiddleware } from "hono/factory"
 import { ZodError } from "zod"
 import type { ApiErrorBody } from "@shared/api"
 import { programmeAccess } from "./access"
@@ -20,12 +21,15 @@ import { viewRoutes } from "./routes/views"
 
 export const app = new Hono<AppEnv>()
 
-app.use("*", async (c, next) => {
+/** Database handle and the logged-in user (if any) for every request. */
+const session = createMiddleware<AppEnv>(async (c, next) => {
   const db = createDb(c.env.DB)
   c.set("db", db)
   c.set("user", await readSession(c, db))
   await next()
 })
+
+app.use("*", session)
 
 app.onError((error, c) => {
   if (error instanceof HttpError) return c.json(error.toBody(), error.status)

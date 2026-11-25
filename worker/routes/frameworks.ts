@@ -226,7 +226,7 @@ frameworkRoutes.put(
           ),
         )
         .run()
-      await assertVersionedUpdate(result, async () => true)
+      await assertVersionedUpdate(result, () => Promise.resolve(true))
     }
     notify(c, "justifications")
     return c.json({ ok: true })
