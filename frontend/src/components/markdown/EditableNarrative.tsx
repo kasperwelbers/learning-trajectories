@@ -1,8 +1,12 @@
 import { Pencil } from "lucide-react"
-import { useState } from "react"
+import { lazy, Suspense, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { MarkdownEditor } from "./MarkdownEditor"
 import { MarkdownView } from "./MarkdownView"
+
+/** The editor is large; load it only when someone starts editing. */
+const MarkdownEditor = lazy(() =>
+  import("./MarkdownEditor").then((m) => ({ default: m.MarkdownEditor })),
+)
 
 interface EditableNarrativeProps {
   value: string
@@ -56,13 +60,15 @@ export function EditableNarrative({
 
   return (
     <div className="space-y-2">
-      <MarkdownEditor
-        initial={value}
-        onChange={setDraft}
-        programmeId={programmeId}
-        placeholder={placeholder}
-        autoFocus
-      />
+      <Suspense fallback={<div className="h-40 animate-pulse rounded-lg border bg-muted" />}>
+        <MarkdownEditor
+          initial={value}
+          onChange={setDraft}
+          programmeId={programmeId}
+          placeholder={placeholder}
+          autoFocus
+        />
+      </Suspense>
       <div className="flex gap-2">
         <Button size="sm" onClick={() => void save()} disabled={saving}>
           {saving ? "Saving…" : "Save"}

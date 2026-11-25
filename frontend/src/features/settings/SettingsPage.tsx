@@ -4,6 +4,7 @@ import { NotFoundView } from "@/components/layout/ErrorView"
 import { useProgramme } from "@/hooks/useProgramme"
 import { cn } from "@/lib/utils"
 import { settingsRoute } from "@/router"
+import { settingsTabs, type SettingsTab } from "./tabs"
 import { FieldsSettings } from "./FieldsSettings"
 import { FrameworksSettings } from "./FrameworksSettings"
 import { GeneralSettings } from "./GeneralSettings"
@@ -11,17 +12,6 @@ import { ImportSettings } from "./ImportSettings"
 import { MembersSettings } from "./MembersSettings"
 import { SharingSettings } from "./SharingSettings"
 import { TrajectorySettings } from "./TrajectorySettings"
-
-export const settingsTabs = [
-  "general",
-  "trajectories",
-  "members",
-  "sharing",
-  "fields",
-  "frameworks",
-  "import",
-] as const
-export type SettingsTab = (typeof settingsTabs)[number]
 
 const TAB_LABELS: Record<SettingsTab, string> = {
   general: "General",

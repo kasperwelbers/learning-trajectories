@@ -1,4 +1,10 @@
-import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/react-router"
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  lazyRouteComponent,
+  Outlet,
+} from "@tanstack/react-router"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ErrorView, NotFoundView } from "@/components/layout/ErrorView"
@@ -6,16 +12,8 @@ import { ProgrammeLayout } from "@/components/layout/ProgrammeLayout"
 import { HomePage } from "@/features/home/HomePage"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { OverviewPage } from "@/features/programme/OverviewPage"
-import { TrajectoryPage } from "@/features/trajectories/TrajectoryPage"
-import { LtoPage } from "@/features/trajectories/LtoPage"
 import { CoursesPage } from "@/features/courses/CoursesPage"
-import { CoursePage } from "@/features/courses/CoursePage"
-import { SettingsPage, settingsTabs, type SettingsTab } from "@/features/settings/SettingsPage"
-import { JourneyView } from "@/features/views/JourneyView"
-import { HeatmapView } from "@/features/views/HeatmapView"
-import { MatrixView } from "@/features/views/MatrixView"
-import { MetadataView } from "@/features/views/MetadataView"
-import { ReportView } from "@/features/views/ReportView"
+import { settingsTabs, type SettingsTab } from "@/features/settings/tabs"
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -66,13 +64,16 @@ const overviewRoute = createRoute({
 export const trajectoryRoute = createRoute({
   getParentRoute: () => programmeRoute,
   path: "trajectories/$trajectoryId",
-  component: TrajectoryPage,
+  component: lazyRouteComponent(
+    () => import("@/features/trajectories/TrajectoryPage"),
+    "TrajectoryPage",
+  ),
 })
 
 export const ltoRoute = createRoute({
   getParentRoute: () => programmeRoute,
   path: "ltos/$ltoId",
-  component: LtoPage,
+  component: lazyRouteComponent(() => import("@/features/trajectories/LtoPage"), "LtoPage"),
 })
 
 const coursesRoute = createRoute({
@@ -88,33 +89,33 @@ export const courseRoute = createRoute({
     const lto = Number(search.lto)
     return Number.isInteger(lto) && lto > 0 ? { lto } : {}
   },
-  component: CoursePage,
+  component: lazyRouteComponent(() => import("@/features/courses/CoursePage"), "CoursePage"),
 })
 
 const journeyRoute = createRoute({
   getParentRoute: () => programmeRoute,
   path: "views/journey",
-  component: JourneyView,
+  component: lazyRouteComponent(() => import("@/features/views/JourneyView"), "JourneyView"),
 })
 const heatmapRoute = createRoute({
   getParentRoute: () => programmeRoute,
   path: "views/heatmap",
-  component: HeatmapView,
+  component: lazyRouteComponent(() => import("@/features/views/HeatmapView"), "HeatmapView"),
 })
 const matrixRoute = createRoute({
   getParentRoute: () => programmeRoute,
   path: "views/matrix",
-  component: MatrixView,
+  component: lazyRouteComponent(() => import("@/features/views/MatrixView"), "MatrixView"),
 })
 const metadataRoute = createRoute({
   getParentRoute: () => programmeRoute,
   path: "views/metadata",
-  component: MetadataView,
+  component: lazyRouteComponent(() => import("@/features/views/MetadataView"), "MetadataView"),
 })
 const reportRoute = createRoute({
   getParentRoute: () => programmeRoute,
   path: "report",
-  component: ReportView,
+  component: lazyRouteComponent(() => import("@/features/views/ReportView"), "ReportView"),
 })
 
 export const settingsRoute = createRoute({
@@ -124,7 +125,7 @@ export const settingsRoute = createRoute({
     const tab = settingsTabs.find((t) => t === search.tab)
     return tab ? { tab } : {}
   },
-  component: SettingsPage,
+  component: lazyRouteComponent(() => import("@/features/settings/SettingsPage"), "SettingsPage"),
 })
 
 const routeTree = rootRoute.addChildren([
