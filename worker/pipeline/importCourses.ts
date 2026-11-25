@@ -1,6 +1,7 @@
 import { z } from "zod"
 import type { ImportPreviewResponse, ProposedCourseDto } from "@shared/api"
 import { aiConfig } from "../ai"
+import { outboundFetch } from "../outbound"
 import { htmlToText } from "./documentText"
 
 /**
@@ -99,10 +100,10 @@ export function flattenVuCurriculum(groups: readonly VuModuleGroup[], lang: stri
   return result
 }
 
-async function fromVuStudyGuide(url: string, match: RegExpExecArray): Promise<SourceResult> {
+async function fromVuStudyGuide(url: string, match: RegExpExecArray, fetchImpl: typeof fetch): Promise<SourceResult> {
   const [, lang = "en", type = "Bachelor", year = "", slug = ""] = match
   const api = `https://studiegids.vu.nl/api/studyguide/${lang.toUpperCase()}/${type}/${year}/studies/${slug}`
-  const response = await fetch(api, { headers: { Accept: "application/json" } })
+  const response = await fetchImpl(api, { headers: { Accept: "application/json" } })
   if (!response.ok) return { url, courses: [], error: `The study guide API returned HTTP ${response.status}` }
   const parsed = vuStudy.safeParse(await response.json())
   if (!parsed.success) return { url, courses: [], error: "Unexpected study guide data" }
@@ -144,9 +145,9 @@ For each course return:
 
 Only list courses that appear on the pages. Do not invent courses or details. Each course once.`
 
-async function fetchPageText(url: string): Promise<{ text: string | null; error: string | null }> {
+async function fetchPageText(url: string, fetchImpl: typeof fetch): Promise<{ text: string | null; error: string | null }> {
   try {
-    const response = await fetch(url, {
+    const response = await fetchImpl(url, {
       headers: { Accept: "text/html,text/plain", "User-Agent": "LearningTrajectories/1.0 (course import)" },
       redirect: "follow",
     })
@@ -178,7 +179,7 @@ function htmlWithLinks(html: string, base: string): string {
 }
 
 async function fromWebPage(env: Env, url: string): Promise<SourceResult> {
-  const page = await fetchPageText(url)
+  const page = await fetchPageText(url, outboundFetch(env))
   if (page.text === null) return { url, courses: [], error: page.error }
   const { client, extractModel } = aiConfig(env)
   const result = await client.generate({
@@ -212,7 +213,7 @@ export async function proposeCoursesFromUrls(env: Env, urls: string[]): Promise<
     urls.map(async (url): Promise<SourceResult> => {
       try {
         const vu = VU_PROGRAMME_URL.exec(url)
-        return vu ? await fromVuStudyGuide(url, vu) : await fromWebPage(env, url)
+        return vu ? await fromVuStudyGuide(url, vu, outboundFetch(env)) : await fromWebPage(env, url)
       } catch (error) {
         return { url, courses: [], error: error instanceof Error ? error.message : "Import failed" }
       }

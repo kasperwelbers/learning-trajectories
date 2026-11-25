@@ -45,4 +45,5 @@
     "ADMIN_EMAILS": ""
   }
   // Secrets (set with `wrangler secret put`): AI_API_KEY
+  // Development only (.dev.vars): OUTBOUND_RELAY, see worker/outbound.ts
 }

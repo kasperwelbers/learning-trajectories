@@ -1,4 +1,4 @@
-import { and, eq, sql, type SQL } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm"
 import type { BatchItem } from "drizzle-orm/batch"
 import type { BloomRef } from "@shared/bloom"
 import type { DocumentKind, LinkOrigin, QuoteVerification, StatementKind } from "@shared/evidence"
@@ -10,6 +10,7 @@ import {
   analysisFields,
   assessments,
   linkRuns,
+  linkStatements,
   links,
   pointers,
   rubrics,
@@ -131,13 +132,20 @@ function insertLinks(db: Db, analysisId: number, rows: readonly StoredLink[]): B
   for (const link of rows) {
     for (const ordinals of chunk(link.statementOrdinals, 1)) {
       if (ordinals.length === 0) continue
-      const list: SQL = sql.join(ordinals.map((o) => sql`${o}`), sql`, `)
       items.push(
-        db.run(sql`
-          INSERT INTO link_statements (link_id, statement_id)
-          SELECT l.id, s.id FROM links l
-          JOIN statements s ON s.analysis_id = l.analysis_id
-          WHERE l.analysis_id = ${analysisId} AND l.ordinal = ${link.ordinal} AND s.ordinal IN (${list})`),
+        db.insert(linkStatements).select(
+          db
+            .select({ linkId: links.id, statementId: statements.id })
+            .from(links)
+            .innerJoin(statements, eq(statements.analysisId, links.analysisId))
+            .where(
+              and(
+                eq(links.analysisId, analysisId),
+                eq(links.ordinal, link.ordinal),
+                inArray(statements.ordinal, ordinals),
+              ),
+            ),
+        ),
       )
     }
   }

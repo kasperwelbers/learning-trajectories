@@ -1,0 +1,173 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/source-serif-4";
+
+/*
+ * Design tokens. Light is a warm "paper" palette; dark follows the system preference.
+ * Bloom domain colours are used by flowers, heatmaps and legends throughout the app.
+ */
+@layer base {
+  :root {
+    --background: oklch(0.985 0.004 85);
+    --foreground: oklch(0.22 0.012 260);
+    --card: oklch(1 0 0);
+    --card-foreground: var(--foreground);
+    --popover: oklch(1 0 0);
+    --popover-foreground: var(--foreground);
+    --primary: oklch(0.35 0.08 255);
+    --primary-foreground: oklch(0.98 0.005 85);
+    --secondary: oklch(0.95 0.008 85);
+    --secondary-foreground: oklch(0.25 0.012 260);
+    --muted: oklch(0.955 0.006 85);
+    --muted-foreground: oklch(0.5 0.015 260);
+    --accent: oklch(0.94 0.012 255);
+    --accent-foreground: oklch(0.25 0.04 255);
+    --destructive: oklch(0.55 0.2 27);
+    --success: oklch(0.55 0.12 150);
+    --warning: oklch(0.7 0.14 75);
+    --border: oklch(0.9 0.008 85);
+    --input: oklch(0.88 0.01 85);
+    --ring: oklch(0.55 0.08 255);
+    --radius: 0.6rem;
+
+    --bloom-cognitive: oklch(0.52 0.15 255);
+    --bloom-affective: oklch(0.58 0.18 350);
+    --bloom-psychomotor: oklch(0.68 0.15 65);
+    --bloom-empty: oklch(0.9 0.006 85);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: oklch(0.17 0.01 260);
+      --foreground: oklch(0.93 0.008 85);
+      --card: oklch(0.21 0.012 260);
+      --popover: oklch(0.23 0.012 260);
+      --primary: oklch(0.78 0.09 255);
+      --primary-foreground: oklch(0.18 0.02 260);
+      --secondary: oklch(0.26 0.012 260);
+      --secondary-foreground: oklch(0.93 0.008 85);
+      --muted: oklch(0.25 0.01 260);
+      --muted-foreground: oklch(0.7 0.012 260);
+      --accent: oklch(0.29 0.03 255);
+      --accent-foreground: oklch(0.93 0.01 255);
+      --destructive: oklch(0.68 0.18 25);
+      --success: oklch(0.7 0.13 150);
+      --warning: oklch(0.78 0.13 75);
+      --border: oklch(1 0 0 / 11%);
+      --input: oklch(1 0 0 / 16%);
+      --ring: oklch(0.7 0.08 255);
+
+      --bloom-cognitive: oklch(0.72 0.13 255);
+      --bloom-affective: oklch(0.74 0.15 350);
+      --bloom-psychomotor: oklch(0.8 0.13 70);
+      --bloom-empty: oklch(0.32 0.01 260);
+    }
+  }
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4 Variable", ui-serif, Georgia, serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-bloom-cognitive: var(--bloom-cognitive);
+  --color-bloom-affective: var(--bloom-affective);
+  --color-bloom-psychomotor: var(--bloom-psychomotor);
+  --color-bloom-empty: var(--bloom-empty);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif tracking-tight;
+  }
+}
+
+/* Rendered markdown (narratives). */
+@layer components {
+  .prose-narrative {
+    @apply max-w-none text-[0.95rem] leading-relaxed;
+  }
+  .prose-narrative :where(p, ul, ol, blockquote, pre, table, img) {
+    @apply my-3;
+  }
+  .prose-narrative :where(h1, h2, h3, h4) {
+    @apply mt-6 mb-2 font-serif font-semibold;
+  }
+  .prose-narrative h1 {
+    @apply text-2xl;
+  }
+  .prose-narrative h2 {
+    @apply text-xl;
+  }
+  .prose-narrative h3 {
+    @apply text-lg;
+  }
+  .prose-narrative :where(ul) {
+    @apply list-disc pl-6;
+  }
+  .prose-narrative :where(ol) {
+    @apply list-decimal pl-6;
+  }
+  .prose-narrative a {
+    @apply text-primary underline underline-offset-2;
+  }
+  .prose-narrative blockquote {
+    @apply border-l-2 border-border pl-4 text-muted-foreground italic;
+  }
+  .prose-narrative code {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.85em];
+  }
+  .prose-narrative img {
+    @apply max-h-[28rem] rounded-md border;
+  }
+  .prose-narrative table {
+    @apply w-full border-collapse text-sm;
+  }
+  .prose-narrative :where(th, td) {
+    @apply border px-2 py-1 text-left;
+  }
+  .prose-narrative > :first-child {
+    @apply mt-0;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

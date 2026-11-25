@@ -4,6 +4,7 @@ import type { Db } from "../db/client"
 import { documents } from "../db/schema"
 import { invalid } from "../errors"
 import { StudyGuideError, fetchStudyGuideText } from "../pipeline/studyGuideText"
+import { outboundFetch } from "../outbound"
 import { documentKey } from "./files"
 
 export { studyGuideUrl } from "../pipeline/studyGuideText"
@@ -24,7 +25,7 @@ export async function saveStudyGuide(
 ): Promise<boolean> {
   let text: string
   try {
-    text = await fetchStudyGuideText(input.url)
+    text = await fetchStudyGuideText(input.url, outboundFetch(env))
   } catch (error) {
     if (error instanceof StudyGuideError) throw invalid(error.message)
     throw error

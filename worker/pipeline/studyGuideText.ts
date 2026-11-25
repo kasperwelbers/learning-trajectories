@@ -14,10 +14,10 @@ export function mainText(html: string): string {
   return htmlToText(main.replace(/<(header|nav|footer|aside)[\s\S]*?<\/\1>/gi, " "))
 }
 
-export async function fetchStudyGuideText(url: string): Promise<string> {
+export async function fetchStudyGuideText(url: string, fetchImpl: typeof fetch = fetch): Promise<string> {
   let response: Response
   try {
-    response = await fetch(url, {
+    response = await fetchImpl(url, {
       headers: { Accept: "text/html", "User-Agent": "LearningTrajectories/1.0 (study guide)" },
       redirect: "follow",
     })
