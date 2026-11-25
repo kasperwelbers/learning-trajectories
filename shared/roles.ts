@@ -11,16 +11,20 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const roleAssignmentSchema = z.discriminatedUnion("role", [
   z.object({ role: z.literal("admin") }),
-  z.object({ role: z.literal("trajectory_coordinator"), trajectoryId: z.number().int() }),
-  z.object({ role: z.literal("course_coordinator"), courseId: z.number().int() }),
+  z.object({
+    role: z.literal("trajectory_coordinator"),
+    trajectoryId: z.number().int(),
+  }),
+  z.object({
+    role: z.literal("course_coordinator"),
+    courseId: z.number().int(),
+  }),
 ])
 export type RoleAssignment = z.infer<typeof roleAssignmentSchema>
 
 /** How the current viewer has access to a programme. */
 export type ProgrammeAccess =
-  | { kind: "server_admin" }
-  | { kind: "member"; roles: RoleAssignment[] }
-  | { kind: "share" }
+  { kind: "server_admin" } | { kind: "member"; roles: RoleAssignment[] } | { kind: "share" }
 
 function hasRole(access: ProgrammeAccess, predicate: (r: RoleAssignment) => boolean): boolean {
   return access.kind === "member" && access.roles.some(predicate)

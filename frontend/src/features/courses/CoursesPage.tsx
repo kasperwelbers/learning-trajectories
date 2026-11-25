@@ -1,6 +1,16 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { AlertTriangle, CircleCheck, Download, FileQuestion, Loader2, MessageSquareWarning, Plus, Search, XCircle } from "lucide-react"
+import {
+  AlertTriangle,
+  CircleCheck,
+  Download,
+  FileQuestion,
+  Loader2,
+  MessageSquareWarning,
+  Plus,
+  Search,
+  XCircle,
+} from "lucide-react"
 import { useMemo, useState, type SyntheticEvent } from "react"
 import type { CourseSummaryDto, FetchStudyGuidesResponse } from "@shared/api"
 import { isProgrammeAdmin } from "@shared/roles"
@@ -8,7 +18,14 @@ import { keys } from "@/api/keys"
 import { queries, useApiMutation } from "@/api/queries"
 import { Loading, QueryError } from "@/components/layout/ErrorView"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -27,12 +44,15 @@ export function CoursesPage() {
       (c) => !term || c.code.toLowerCase().includes(term) || c.name.toLowerCase().includes(term),
     )
     const byYear = new Map<number | null, CourseSummaryDto[]>()
-    for (const course of list) byYear.set(course.programmeYear, [...(byYear.get(course.programmeYear) ?? []), course])
+    for (const course of list)
+      byYear.set(course.programmeYear, [...(byYear.get(course.programmeYear) ?? []), course])
     return [...byYear.entries()]
       .sort(([a], [b]) => (a ?? 99) - (b ?? 99))
       .map(([programmeYear, items]) => ({
         programmeYear,
-        items: items.sort((a, b) => (a.periods[0] ?? 99) - (b.periods[0] ?? 99) || a.code.localeCompare(b.code)),
+        items: items.sort(
+          (a, b) => (a.periods[0] ?? 99) - (b.periods[0] ?? 99) || a.code.localeCompare(b.code),
+        ),
       }))
   }, [courses.data, filter])
 
@@ -49,7 +69,11 @@ export function CoursesPage() {
           <div className="flex flex-wrap gap-2">
             {programme.studyGuideUrlTemplate && <FetchStudyGuidesButton />}
             <Button variant="outline" asChild>
-              <Link to="/p/$programmeId/settings" params={{ programmeId: programme.id }} search={{ tab: "import" }}>
+              <Link
+                to="/p/$programmeId/settings"
+                params={{ programmeId: programme.id }}
+                search={{ tab: "import" }}
+              >
                 Import courses
               </Link>
             </Button>
@@ -59,16 +83,25 @@ export function CoursesPage() {
       </div>
       <div className="relative max-w-sm">
         <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
-        <Input placeholder="Search courses" value={filter} onChange={(e) => setFilter(e.target.value)} className="pl-9" />
+        <Input
+          placeholder="Search courses"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="pl-9"
+        />
       </div>
       {courses.error && <QueryError error={courses.error} />}
       {!courses.data && !courses.error && <Loading />}
       {courses.data?.courses.length === 0 && (
-        <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">No courses yet.</p>
+        <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          No courses yet.
+        </p>
       )}
       {groups.map((group) => (
         <section key={group.programmeYear ?? "none"} className="space-y-2">
-          <h2 className="text-lg font-semibold">{group.programmeYear ? `Year ${group.programmeYear}` : "Year not set"}</h2>
+          <h2 className="text-lg font-semibold">
+            {group.programmeYear ? `Year ${group.programmeYear}` : "Year not set"}
+          </h2>
           <div className="overflow-x-auto rounded-xl border bg-card">
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-muted-foreground">
@@ -109,7 +142,9 @@ function CourseRow({ course }: { course: CourseSummaryDto }) {
           {course.name}
         </Link>
         {course.analysisYear && course.analysisYear !== year && (
-          <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-xs">showing {course.analysisYear}</span>
+          <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-xs">
+            showing {course.analysisYear}
+          </span>
         )}
       </td>
       <td className="px-3 py-2.5 text-muted-foreground">{formatPeriods(course.periods)}</td>
@@ -198,15 +233,26 @@ function AddCourseDialog() {
   const [code, setCode] = useState("")
   const [name, setName] = useState("")
   const [programmeYear, setProgrammeYear] = useState("")
-  const create = useApiMutation<{ code: string; name: string; programmeYear: number | null }, { id: number }>({
-    request: (body) => ({ method: "POST", path: `/api/p/${programme.id}/courses`, body }),
+  const create = useApiMutation<
+    { code: string; name: string; programmeYear: number | null },
+    { id: number }
+  >({
+    request: (body) => ({
+      method: "POST",
+      path: `/api/p/${programme.id}/courses`,
+      body,
+    }),
     invalidate: () => [["p", programme.id, "courses"]],
     success: "Course added",
   })
   const submit = (event: SyntheticEvent) => {
     event.preventDefault()
     create.mutate(
-      { code, name, programmeYear: programmeYear ? Number(programmeYear) : null },
+      {
+        code,
+        name,
+        programmeYear: programmeYear ? Number(programmeYear) : null,
+      },
       {
         onSuccess: () => {
           setOpen(false)
@@ -231,16 +277,34 @@ function AddCourseDialog() {
           <div className="grid grid-cols-[1fr_6rem] gap-3">
             <div className="space-y-2">
               <Label htmlFor="course-code">Code</Label>
-              <Input id="course-code" required value={code} onChange={(e) => setCode(e.target.value)} placeholder="S_AIS" />
+              <Input
+                id="course-code"
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="S_AIS"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="course-year">Year</Label>
-              <Input id="course-year" type="number" min={1} max={10} value={programmeYear} onChange={(e) => setProgrammeYear(e.target.value)} />
+              <Input
+                id="course-year"
+                type="number"
+                min={1}
+                max={10}
+                value={programmeYear}
+                onChange={(e) => setProgrammeYear(e.target.value)}
+              />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="course-name">Name</Label>
-            <Input id="course-name" required value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+              id="course-name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={create.isPending}>
@@ -256,7 +320,11 @@ function AddCourseDialog() {
 function FetchStudyGuidesButton() {
   const { programme, year } = useProgramme()
   const fetchAll = useApiMutation<undefined, FetchStudyGuidesResponse>({
-    request: () => ({ method: "POST", path: `/api/p/${programme.id}/study-guides/fetch`, body: { year } }),
+    request: () => ({
+      method: "POST",
+      path: `/api/p/${programme.id}/study-guides/fetch`,
+      body: { year },
+    }),
     invalidate: () => [["p", programme.id, "courses"], keys.programme(programme.id)],
     success: (r) =>
       r.failed.length === 0
@@ -264,7 +332,11 @@ function FetchStudyGuidesButton() {
         : `Fetched ${r.fetched}; failed for ${r.failed.map((f) => f.code).join(", ")}`,
   })
   return (
-    <Button variant="outline" disabled={fetchAll.isPending} onClick={() => fetchAll.mutate(undefined)}>
+    <Button
+      variant="outline"
+      disabled={fetchAll.isPending}
+      onClick={() => fetchAll.mutate(undefined)}
+    >
       {fetchAll.isPending ? <Loader2 className="animate-spin" /> : <Download />} Fetch study guides
     </Button>
   )

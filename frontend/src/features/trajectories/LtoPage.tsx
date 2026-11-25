@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { ChevronRight, MessageSquareWarning, RefreshCw, Sparkles } from "lucide-react"
-import type { FrameworkDto, JustificationDto, LtoDto, LtoEvidenceResponse, TrajectoryDto } from "@shared/api"
+import type {
+  FrameworkDto,
+  JustificationDto,
+  LtoDto,
+  LtoEvidenceResponse,
+  TrajectoryDto,
+} from "@shared/api"
 import { BLOOM, levelInfo } from "@shared/bloom"
 import { canEditTrajectory } from "@shared/roles"
 import { keys } from "@/api/keys"
@@ -34,7 +40,11 @@ function LtoContent({ trajectory, lto }: { trajectory: TrajectoryDto; lto: LtoDt
   const flower = coverage.data?.flowers.get(lto.id)
 
   const update = useApiMutation<{ narrative: string }>({
-    request: (body) => ({ method: "PATCH", path: `/api/p/${programme.id}/ltos/${lto.id}`, body: { ...body, version: lto.version } }),
+    request: (body) => ({
+      method: "PATCH",
+      path: `/api/p/${programme.id}/ltos/${lto.id}`,
+      body: { ...body, version: lto.version },
+    }),
     invalidate: () => [keys.structure(programme.id)],
     success: "Saved. Links to courses will be updated in a few minutes.",
   })
@@ -45,7 +55,10 @@ function LtoContent({ trajectory, lto }: { trajectory: TrajectoryDto; lto: LtoDt
         <nav className="flex items-center gap-1 text-sm text-muted-foreground">
           <Link
             to="/p/$programmeId/trajectories/$trajectoryId"
-            params={{ programmeId: programme.id, trajectoryId: String(trajectory.id) }}
+            params={{
+              programmeId: programme.id,
+              trajectoryId: String(trajectory.id),
+            }}
             search={(s) => s}
             className="hover:underline"
           >
@@ -60,7 +73,8 @@ function LtoContent({ trajectory, lto }: { trajectory: TrajectoryDto; lto: LtoDt
         </div>
         {lto.relinkPending && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <RefreshCw className="size-3.5 animate-spin" /> This LTO changed recently; its links to courses are being updated.
+            <RefreshCw className="size-3.5 animate-spin" /> This LTO changed recently; its links to
+            courses are being updated.
           </p>
         )}
         <div className="max-w-3xl">
@@ -82,7 +96,8 @@ function LtoContent({ trajectory, lto }: { trajectory: TrajectoryDto; lto: LtoDt
           <div>
             <h2 className="text-2xl font-semibold">Evidence from courses</h2>
             <p className="text-sm text-muted-foreground">
-              Per course and Bloom level: the passages from course documents, and why the AI considers them evidence ({year}).
+              Per course and Bloom level: the passages from course documents, and why the AI
+              considers them evidence ({year}).
             </p>
           </div>
           <FlowerLegend />
@@ -108,7 +123,9 @@ function Justifications({ lto, canEdit }: { lto: LtoDto; canEdit: boolean }) {
           The trajectory coordinator&apos;s justification, per indicator of each framework.
         </p>
       </div>
-      {(frameworks.error ?? justifications.error) && <QueryError error={frameworks.error ?? justifications.error} />}
+      {(frameworks.error ?? justifications.error) && (
+        <QueryError error={frameworks.error ?? justifications.error} />
+      )}
       {frameworks.data?.map((framework) => (
         <FrameworkJustifications
           key={framework.id}
@@ -134,7 +151,11 @@ function FrameworkJustifications({
   justifications: JustificationDto[]
 }) {
   const { programme } = useProgramme()
-  const save = useApiMutation<{ indicatorId: number; text: string; version: number | null }>({
+  const save = useApiMutation<{
+    indicatorId: number
+    text: string
+    version: number | null
+  }>({
     request: ({ indicatorId, text, version }) => ({
       method: "PUT",
       path: `/api/p/${programme.id}/ltos/${lto.id}/justifications/${indicatorId}`,
@@ -148,22 +169,37 @@ function FrameworkJustifications({
         <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
         <h3 className="text-lg font-semibold">{framework.name}</h3>
         <span className="ml-auto text-xs text-muted-foreground">
-          {framework.indicators.filter((i) => justifications.some((j) => j.ltoId === lto.id && j.indicatorId === i.id && j.text.trim())).length}
+          {
+            framework.indicators.filter((i) =>
+              justifications.some(
+                (j) => j.ltoId === lto.id && j.indicatorId === i.id && j.text.trim(),
+              ),
+            ).length
+          }
           {" / "}
           {framework.indicators.length} justified
         </span>
       </summary>
       <div className="divide-y border-t">
         {framework.indicators.map((indicator) => {
-          const current = justifications.find((j) => j.ltoId === lto.id && j.indicatorId === indicator.id)
+          const current = justifications.find(
+            (j) => j.ltoId === lto.id && j.indicatorId === indicator.id,
+          )
           return (
             <div key={indicator.id} className="grid gap-3 px-5 py-4 md:grid-cols-[14rem_1fr]">
               <div>
                 <p className="font-medium">
-                  {indicator.code && <span className="mr-1.5 font-mono text-xs text-muted-foreground">{indicator.code}</span>}
+                  {indicator.code && (
+                    <span className="mr-1.5 font-mono text-xs text-muted-foreground">
+                      {indicator.code}
+                    </span>
+                  )}
                   {indicator.name}
                 </p>
-                <p className="mt-1 line-clamp-4 text-xs text-muted-foreground" title={indicator.description}>
+                <p
+                  className="mt-1 line-clamp-4 text-xs text-muted-foreground"
+                  title={indicator.description}
+                >
                   {indicator.description}
                 </p>
               </div>
@@ -171,14 +207,21 @@ function FrameworkJustifications({
                 <EditableNarrative
                   value={current?.text ?? ""}
                   canEdit={canEdit}
-                  onSave={(text) => save.mutateAsync({ indicatorId: indicator.id, text, version: current?.version ?? null })}
+                  onSave={(text) =>
+                    save.mutateAsync({
+                      indicatorId: indicator.id,
+                      text,
+                      version: current?.version ?? null,
+                    })
+                  }
                   programmeId={programme.id}
                   empty="Not justified yet."
                   placeholder="How does achieving this outcome satisfy this indicator?"
                 />
                 {current?.updatedBy && (
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Last edited by {current.updatedBy} on {new Date(current.updatedAt).toLocaleDateString()}
+                    Last edited by {current.updatedBy} on{" "}
+                    {new Date(current.updatedAt).toLocaleDateString()}
                   </p>
                 )}
               </div>
@@ -213,7 +256,13 @@ function Evidence({ ltoId }: { ltoId: number }) {
   )
 }
 
-function CourseEvidence({ entry, ltoId }: { entry: LtoEvidenceResponse["courses"][number]; ltoId: number }) {
+function CourseEvidence({
+  entry,
+  ltoId,
+}: {
+  entry: LtoEvidenceResponse["courses"][number]
+  ltoId: number
+}) {
   const { programme, year } = useProgramme()
   const openDisputes = entry.disputes.filter((d) => d.status === "open")
   return (
@@ -221,7 +270,10 @@ function CourseEvidence({ entry, ltoId }: { entry: LtoEvidenceResponse["courses"
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-5 py-3">
         <Link
           to="/p/$programmeId/courses/$courseId"
-          params={{ programmeId: programme.id, courseId: String(entry.course.id) }}
+          params={{
+            programmeId: programme.id,
+            courseId: String(entry.course.id),
+          }}
           search={(s) => ({ year: s.year, lto: ltoId })}
           className="font-semibold hover:underline"
         >
@@ -229,7 +281,9 @@ function CourseEvidence({ entry, ltoId }: { entry: LtoEvidenceResponse["courses"
           {entry.course.name}
         </Link>
         {entry.course.analysisYear && entry.course.analysisYear !== year && (
-          <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs">from {entry.course.analysisYear}</span>
+          <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs">
+            from {entry.course.analysisYear}
+          </span>
         )}
         <span className="ml-auto flex flex-wrap gap-1">
           {entry.levels.map((l) => (
@@ -243,7 +297,10 @@ function CourseEvidence({ entry, ltoId }: { entry: LtoEvidenceResponse["courses"
             <p key={d.id} className="flex gap-2">
               <MessageSquareWarning className="mt-0.5 size-4 shrink-0 text-warning" />
               <span>
-                <span className="font-medium">Disputed{d.ref ? ` at ${levelInfo(d.ref).label}` : ""}</span> by {d.createdBy}: {d.text}
+                <span className="font-medium">
+                  Disputed{d.ref ? ` at ${levelInfo(d.ref).label}` : ""}
+                </span>{" "}
+                by {d.createdBy}: {d.text}
               </span>
             </p>
           ))}
@@ -254,16 +311,24 @@ function CourseEvidence({ entry, ltoId }: { entry: LtoEvidenceResponse["courses"
           <div key={`${level.domain}:${level.level}`} className="space-y-3 px-5 py-4">
             <p className="text-sm font-medium">
               {BLOOM[level.domain].label} · {levelInfo(level).label}{" "}
-              <span className="font-normal text-muted-foreground">— {level.tested ? "taught and tested" : "taught, not tested"}</span>
+              <span className="font-normal text-muted-foreground">
+                — {level.tested ? "taught and tested" : "taught, not tested"}
+              </span>
             </p>
             {level.links.map((link, i) => (
               <div key={i} className="space-y-3">
                 <p className="flex gap-2 text-sm text-muted-foreground">
                   <Sparkles className="mt-0.5 size-3.5 shrink-0" />
                   <span>
-                    {link.origin === "pointer" && <span className="font-medium text-foreground">Pointed out by the coordinator. </span>}
+                    {link.origin === "pointer" && (
+                      <span className="font-medium text-foreground">
+                        Pointed out by the coordinator.{" "}
+                      </span>
+                    )}
                     {link.justification}{" "}
-                    <span className="text-xs">(confidence {Math.round(link.confidence * 100)}%)</span>
+                    <span className="text-xs">
+                      (confidence {Math.round(link.confidence * 100)}%)
+                    </span>
                   </span>
                 </p>
                 <div className="flex flex-wrap gap-1 pl-5">

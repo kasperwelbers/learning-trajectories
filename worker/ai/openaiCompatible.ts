@@ -33,14 +33,21 @@ export class OpenAiCompatibleClient implements LlmClient {
     })
     const text = await response.text()
     if (!response.ok) {
-      throw new LlmRequestError(`AI request failed (${response.status}): ${errorMessage(text)}`, response.status)
+      throw new LlmRequestError(
+        `AI request failed (${response.status}): ${errorMessage(text)}`,
+        response.status,
+      )
     }
     const completion = completionSchema.safeParse(safeJson(text))
-    if (!completion.success) throw new InvalidModelOutput("Unexpected response from the AI provider", text)
+    if (!completion.success)
+      throw new InvalidModelOutput("Unexpected response from the AI provider", text)
     const choice = completion.data.choices[0]
     const content = choice?.message.content
     if (!content) {
-      throw new InvalidModelOutput(`The model returned no content (finish reason: ${choice?.finish_reason ?? "unknown"})`, text)
+      throw new InvalidModelOutput(
+        `The model returned no content (finish reason: ${choice?.finish_reason ?? "unknown"})`,
+        text,
+      )
     }
     const parsed = parseModelJson(request.schema, content)
     if (!parsed.ok) throw new InvalidModelOutput(parsed.error, content)
@@ -57,7 +64,11 @@ export function buildChatRequest<T>(request: GenerateRequest<T>) {
     ],
     response_format: {
       type: "json_schema",
-      json_schema: { name: request.schemaName, strict: true, schema: structuredOutputSchema(request.schema) },
+      json_schema: {
+        name: request.schemaName,
+        strict: true,
+        schema: structuredOutputSchema(request.schema),
+      },
     },
   }
 }
@@ -67,7 +78,12 @@ function toChatPart(part: ContentPart) {
     case "text":
       return { type: "text", text: part.text }
     case "pdf":
-      return { type: "image_url", image_url: { url: `data:application/pdf;base64,${toBase64(part.data)}` } }
+      return {
+        type: "image_url",
+        image_url: {
+          url: `data:application/pdf;base64,${toBase64(part.data)}`,
+        },
+      }
   }
 }
 

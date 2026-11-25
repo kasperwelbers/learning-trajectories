@@ -8,7 +8,13 @@ import { ltosForLinking } from "./linkingInput"
 /** Fingerprint of everything the linking prompt reads about one LTO. */
 export function ltoHash(lto: LinkingLto): Promise<string> {
   return sha256Hex(
-    JSON.stringify([lto.code, lto.title, lto.narrative, lto.trajectory.name, lto.trajectory.narrative]),
+    JSON.stringify([
+      lto.code,
+      lto.title,
+      lto.narrative,
+      lto.trajectory.name,
+      lto.trajectory.narrative,
+    ]),
   )
 }
 
@@ -26,7 +32,11 @@ export function documentsHashOf(shas: readonly string[]): Promise<string> {
 /** Documents hash per `${courseId}|${year}` for a whole programme. */
 export async function documentsHashes(db: Db, programmeId: string): Promise<Map<string, string>> {
   const rows = await db
-    .select({ courseId: documents.courseId, year: documents.year, sha256: documents.sha256 })
+    .select({
+      courseId: documents.courseId,
+      year: documents.year,
+      sha256: documents.sha256,
+    })
     .from(documents)
     .where(eq(documents.programmeId, programmeId))
   const grouped = new Map<string, string[]>()

@@ -15,9 +15,11 @@ export const keys = {
   justifications: (pid: string) => ["p", pid, "justifications"] as const,
   fields: (pid: string) => ["p", pid, "fields"] as const,
   courses: (pid: string, year: string) => ["p", pid, "courses", year] as const,
-  course: (pid: string, courseId: number, year: string) => ["p", pid, "course", courseId, year] as const,
+  course: (pid: string, courseId: number, year: string) =>
+    ["p", pid, "course", courseId, year] as const,
   coverage: (pid: string, year: string) => ["p", pid, "coverage", year] as const,
-  evidence: (pid: string, ltoId: number, year: string) => ["p", pid, "coverage", "evidence", ltoId, year] as const,
+  evidence: (pid: string, ltoId: number, year: string) =>
+    ["p", pid, "coverage", "evidence", ltoId, year] as const,
   metadata: (pid: string, year: string) => ["p", pid, "coverage", "metadata", year] as const,
 }
 

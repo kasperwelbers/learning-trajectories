@@ -43,7 +43,8 @@ export class ProgrammeHub extends DurableObject<Env> {
   }
 
   private sendPresence(): void {
-    this.send({ type: "presence", viewers: this.ctx.getWebSockets().length })
+    const open = this.ctx.getWebSockets().filter((ws) => ws.readyState === WebSocket.OPEN)
+    this.send({ type: "presence", viewers: open.length })
   }
 
   private send(message: HubMessage): void {

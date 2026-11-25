@@ -13,7 +13,9 @@ export async function documentPages(bytes: Uint8Array, mimeType: string): Promis
       return text
     }
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
-      const { value } = await extractRawText({ arrayBuffer: bytes.slice().buffer })
+      const { value } = await extractRawText({
+        arrayBuffer: bytes.slice().buffer,
+      })
       return [value]
     }
     case "text/html":
@@ -38,11 +40,19 @@ export function htmlToText(html: string): string {
     .trim()
 }
 
-const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " }
+const ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+}
 
 function decodeEntities(text: string): string {
   return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
-    if (entity.startsWith("#x") || entity.startsWith("#X")) return String.fromCodePoint(parseInt(entity.slice(2), 16))
+    if (entity.startsWith("#x") || entity.startsWith("#X"))
+      return String.fromCodePoint(parseInt(entity.slice(2), 16))
     if (entity.startsWith("#")) return String.fromCodePoint(parseInt(entity.slice(1), 10))
     return ENTITIES[entity.toLowerCase()] ?? match
   })

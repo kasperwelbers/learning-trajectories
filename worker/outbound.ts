@@ -16,7 +16,8 @@ export function outboundFetch(env: { OUTBOUND_RELAY?: string }): typeof fetch {
     return fetch(relay, {
       method: request.method,
       headers,
-      body: request.method === "GET" || request.method === "HEAD" ? null : await request.arrayBuffer(),
+      body:
+        request.method === "GET" || request.method === "HEAD" ? null : await request.arrayBuffer(),
     })
   }
 }

@@ -8,16 +8,21 @@ import { useProgramme } from "@/hooks/useProgramme"
 export function StatementsPanel({ detail }: { detail: CourseDetailResponse }) {
   const { programme } = useProgramme()
   const analysis = detail.analysis
-  if (!analysis || (analysis.statements.length === 0 && analysis.assessments.length === 0)) return null
+  if (!analysis || (analysis.statements.length === 0 && analysis.assessments.length === 0))
+    return null
 
   return (
     <section className="space-y-4">
       <div>
         <h2 className="text-2xl font-semibold">Extracted from the documents</h2>
-        <p className="text-sm text-muted-foreground">Verbatim statements about what students learn, do and are assessed on.</p>
+        <p className="text-sm text-muted-foreground">
+          Verbatim statements about what students learn, do and are assessed on.
+        </p>
       </div>
       {detail.documents.map((doc) => {
-        const statements = analysis.statements.filter((s) => s.documentId === doc.id && !s.fromPointer)
+        const statements = analysis.statements.filter(
+          (s) => s.documentId === doc.id && !s.fromPointer,
+        )
         if (statements.length === 0) return null
         return (
           <details key={doc.id} className="group rounded-xl border bg-card">
@@ -25,7 +30,9 @@ export function StatementsPanel({ detail }: { detail: CourseDetailResponse }) {
               <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
               <span className="font-medium">{DOCUMENT_KIND_LABELS[doc.kind]}</span>
               <span className="truncate text-sm text-muted-foreground">{doc.filename}</span>
-              <span className="ml-auto text-xs text-muted-foreground">{statements.length} statements</span>
+              <span className="ml-auto text-xs text-muted-foreground">
+                {statements.length} statements
+              </span>
             </summary>
             <div className="space-y-4 border-t px-5 py-4">
               {statements.map((s) => (
@@ -37,7 +44,11 @@ export function StatementsPanel({ detail }: { detail: CourseDetailResponse }) {
                   kind={s.kind}
                   page={s.page}
                   verification={s.verification}
-                  document={{ id: doc.id, kind: doc.kind, filename: doc.filename }}
+                  document={{
+                    id: doc.id,
+                    kind: doc.kind,
+                    filename: doc.filename,
+                  }}
                   assessedBy={s.assessedBy}
                 />
               ))}
@@ -60,7 +71,9 @@ export function StatementsPanel({ detail }: { detail: CourseDetailResponse }) {
               {analysis.assessments.map((a) => (
                 <tr key={a.id} className="border-b last:border-0">
                   <td className="px-4 py-2">{a.name}</td>
-                  <td className="px-3 py-2 tabular-nums">{a.weight === null ? "–" : `${a.weight}%`}</td>
+                  <td className="px-3 py-2 tabular-nums">
+                    {a.weight === null ? "–" : `${a.weight}%`}
+                  </td>
                   <td className="px-3 py-2 text-muted-foreground">{a.grading || "–"}</td>
                 </tr>
               ))}
@@ -74,7 +87,9 @@ export function StatementsPanel({ detail }: { detail: CourseDetailResponse }) {
           <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3">
             <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
             <span className="font-medium">Rubric: {rubric.assessment}</span>
-            <span className="ml-auto text-xs text-muted-foreground">{rubric.criteria.length} criteria</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {rubric.criteria.length} criteria
+            </span>
           </summary>
           <div className="overflow-x-auto border-t">
             <table className="w-full text-sm">

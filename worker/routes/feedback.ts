@@ -157,7 +157,12 @@ feedbackRoutes.post("/courses/:cid/pointers", validate("json", createPointerBody
   }
   const row = await db
     .insert(pointers)
-    .values({ ...body, programmeId, courseId: course.id, createdBy: actorEmail(c) })
+    .values({
+      ...body,
+      programmeId,
+      courseId: course.id,
+      createdBy: actorEmail(c),
+    })
     .returning({ id: pointers.id })
     .get()
   await startPointerJudgement(c.env, db, row.id)
@@ -171,7 +176,12 @@ feedbackRoutes.delete("/pointers/:id", async (c) => {
     await db
       .select()
       .from(pointers)
-      .where(and(eq(pointers.id, intParam(c.req.param("id"))), eq(pointers.programmeId, c.get("programmeId"))))
+      .where(
+        and(
+          eq(pointers.id, intParam(c.req.param("id"))),
+          eq(pointers.programmeId, c.get("programmeId")),
+        ),
+      )
       .get(),
     "Pointer not found",
   )

@@ -14,7 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useLiveUpdates } from "@/hooks/useLiveUpdates"
 import { ProgrammeContext, useProgramme, type ProgrammeContextValue } from "@/hooks/useProgramme"
@@ -32,7 +38,11 @@ export function ProgrammeLayout() {
   const value = useMemo<ProgrammeContextValue | null>(
     () =>
       programme.data
-        ? { programme: programme.data, year: search.year ?? programme.data.currentYear, live }
+        ? {
+            programme: programme.data,
+            year: search.year ?? programme.data.currentYear,
+            live,
+          }
         : null,
     [programme.data, search.year, live],
   )
@@ -43,7 +53,12 @@ export function ProgrammeLayout() {
     }
     if (programme.error.status === 404) return <NotFoundView />
   }
-  if (programme.error) return <div className="p-8"><QueryError error={programme.error} /></div>
+  if (programme.error)
+    return (
+      <div className="p-8">
+        <QueryError error={programme.error} />
+      </div>
+    )
   if (!value) return <Loading />
 
   return (
@@ -81,7 +96,13 @@ function ProgrammeHeader() {
           {programme.name}
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
-          <Link to="/p/$programmeId" params={{ programmeId }} search={(s) => s} className={navLink} activeOptions={{ exact: true }}>
+          <Link
+            to="/p/$programmeId"
+            params={{ programmeId }}
+            search={(s) => s}
+            className={navLink}
+            activeOptions={{ exact: true }}
+          >
             Overview
           </Link>
           <DropdownMenu>
@@ -90,12 +111,23 @@ function ProgrammeHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-72">
               {structure.data?.trajectories.length === 0 && (
-                <DropdownMenuLabel className="font-normal text-muted-foreground">No trajectories yet</DropdownMenuLabel>
+                <DropdownMenuLabel className="font-normal text-muted-foreground">
+                  No trajectories yet
+                </DropdownMenuLabel>
               )}
               {structure.data?.trajectories.map((t) => (
                 <DropdownMenuItem key={t.id} asChild>
-                  <Link to="/p/$programmeId/trajectories/$trajectoryId" params={{ programmeId, trajectoryId: String(t.id) }} search={(s) => s}>
-                    <span className="size-2.5 shrink-0 rounded-full" style={{ background: t.color || "var(--muted-foreground)" }} />
+                  <Link
+                    to="/p/$programmeId/trajectories/$trajectoryId"
+                    params={{ programmeId, trajectoryId: String(t.id) }}
+                    search={(s) => s}
+                  >
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{
+                        background: t.color || "var(--muted-foreground)",
+                      }}
+                    />
                     <span className="truncate">{t.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">{t.ltos.length}</span>
                   </Link>
@@ -103,7 +135,12 @@ function ProgrammeHeader() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Link to="/p/$programmeId/courses" params={{ programmeId }} search={(s) => s} className={navLink}>
+          <Link
+            to="/p/$programmeId/courses"
+            params={{ programmeId }}
+            search={(s) => s}
+            className={navLink}
+          >
             Courses
           </Link>
           <DropdownMenu>
@@ -111,12 +148,32 @@ function ProgrammeHeader() {
               Views <ChevronDown className="size-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
-              <ViewItem to="/p/$programmeId/views/journey" title="Trajectory journey" subtitle="Courses along the programme" />
-              <ViewItem to="/p/$programmeId/views/heatmap" title="Bloom heatmap" subtitle="Where each LTO is taught and tested" />
-              <ViewItem to="/p/$programmeId/views/matrix" title="Course × LTO matrix" subtitle="What each course contributes" />
-              <ViewItem to="/p/$programmeId/views/metadata" title="Course manual check" subtitle="Extracted information per course" />
+              <ViewItem
+                to="/p/$programmeId/views/journey"
+                title="Trajectory journey"
+                subtitle="Courses along the programme"
+              />
+              <ViewItem
+                to="/p/$programmeId/views/heatmap"
+                title="Bloom heatmap"
+                subtitle="Where each LTO is taught and tested"
+              />
+              <ViewItem
+                to="/p/$programmeId/views/matrix"
+                title="Course × LTO matrix"
+                subtitle="What each course contributes"
+              />
+              <ViewItem
+                to="/p/$programmeId/views/metadata"
+                title="Course manual check"
+                subtitle="Extracted information per course"
+              />
               <DropdownMenuSeparator />
-              <ViewItem to="/p/$programmeId/report" title="Programme report" subtitle="Printable overview for committees" />
+              <ViewItem
+                to="/p/$programmeId/report"
+                title="Programme report"
+                subtitle="Printable overview for committees"
+              />
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
@@ -125,7 +182,12 @@ function ProgrammeHeader() {
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:flex">
-                <Radio className={cn("size-3.5", live.status === "live" ? "text-success" : "text-warning")} />
+                <Radio
+                  className={cn(
+                    "size-3.5",
+                    live.status === "live" ? "text-success" : "text-warning",
+                  )}
+                />
                 {live.viewers > 1 && live.viewers}
               </span>
             </TooltipTrigger>
@@ -137,7 +199,12 @@ function ProgrammeHeader() {
           </Tooltip>
           {admin && (
             <Button variant="ghost" size="icon-sm" asChild>
-              <Link to="/p/$programmeId/settings" params={{ programmeId }} search={(s) => ({ year: s.year })} aria-label="Settings">
+              <Link
+                to="/p/$programmeId/settings"
+                params={{ programmeId }}
+                search={(s) => ({ year: s.year })}
+                aria-label="Settings"
+              >
                 <Settings />
               </Link>
             </Button>
@@ -167,7 +234,12 @@ function ViewItem({ to, title, subtitle }: { to: ViewPath; title: string; subtit
   const { programmeId } = programmeRoute.useParams()
   return (
     <DropdownMenuItem asChild>
-      <Link to={to} params={{ programmeId }} search={(s) => ({ year: s.year })} className="flex flex-col items-start gap-0">
+      <Link
+        to={to}
+        params={{ programmeId }}
+        search={(s) => ({ year: s.year })}
+        className="flex flex-col items-start gap-0"
+      >
         <span>{title}</span>
         <span className="text-xs text-muted-foreground">{subtitle}</span>
       </Link>
@@ -179,19 +251,45 @@ function MobileNav() {
   const { programmeId } = programmeRoute.useParams()
   return (
     <nav className="flex gap-1 overflow-x-auto border-t px-3 py-1.5 md:hidden">
-      <Link to="/p/$programmeId" params={{ programmeId }} search={(s) => s} className={navLink} activeOptions={{ exact: true }}>
+      <Link
+        to="/p/$programmeId"
+        params={{ programmeId }}
+        search={(s) => s}
+        className={navLink}
+        activeOptions={{ exact: true }}
+      >
         Overview
       </Link>
-      <Link to="/p/$programmeId/courses" params={{ programmeId }} search={(s) => s} className={navLink}>
+      <Link
+        to="/p/$programmeId/courses"
+        params={{ programmeId }}
+        search={(s) => s}
+        className={navLink}
+      >
         Courses
       </Link>
-      <Link to="/p/$programmeId/views/heatmap" params={{ programmeId }} search={(s) => ({ year: s.year })} className={navLink}>
+      <Link
+        to="/p/$programmeId/views/heatmap"
+        params={{ programmeId }}
+        search={(s) => ({ year: s.year })}
+        className={navLink}
+      >
         Heatmap
       </Link>
-      <Link to="/p/$programmeId/views/journey" params={{ programmeId }} search={(s) => ({ year: s.year })} className={navLink}>
+      <Link
+        to="/p/$programmeId/views/journey"
+        params={{ programmeId }}
+        search={(s) => ({ year: s.year })}
+        className={navLink}
+      >
         Journey
       </Link>
-      <Link to="/p/$programmeId/report" params={{ programmeId }} search={(s) => ({ year: s.year })} className={navLink}>
+      <Link
+        to="/p/$programmeId/report"
+        params={{ programmeId }}
+        search={(s) => ({ year: s.year })}
+        className={navLink}
+      >
         Report
       </Link>
     </nav>
@@ -207,18 +305,20 @@ function YearSelect({ years, year }: { years: string[]; year: string }) {
       onValueChange={(value) =>
         void navigate({
           to: ".",
-          search: (prev: Record<string, unknown>) => ({ ...prev, year: value === programme.currentYear ? undefined : value }),
+          search: (prev: Record<string, unknown>) => ({
+            ...prev,
+            year: value === programme.currentYear ? undefined : value,
+          }),
         })
       }
     >
-      <SelectTrigger size="sm" className="w-[8.5rem]" aria-label="Academic year">
+      <SelectTrigger size="sm" className="w-auto min-w-[8.5rem]" aria-label="Academic year">
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="end">
         {years.map((y) => (
           <SelectItem key={y} value={y}>
-            {y}
-            {y === programme.currentYear && <span className="text-xs text-muted-foreground"> (current)</span>}
+            {y === programme.currentYear ? `${y} ·  current` : y}
           </SelectItem>
         ))}
       </SelectContent>

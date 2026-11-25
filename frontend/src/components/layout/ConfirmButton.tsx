@@ -20,7 +20,13 @@ interface ConfirmButtonProps {
 }
 
 /** Wraps a trigger (e.g. a delete button) with a confirmation dialog. */
-export function ConfirmButton({ title, description, confirmLabel = "Delete", onConfirm, children }: ConfirmButtonProps) {
+export function ConfirmButton({
+  title,
+  description,
+  confirmLabel = "Delete",
+  onConfirm,
+  children,
+}: ConfirmButtonProps) {
   const [open, setOpen] = useState(false)
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

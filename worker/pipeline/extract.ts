@@ -51,7 +51,7 @@ export function manualExtractionSchema(fields: readonly FieldDefinition[]) {
   })
 }
 
-export const supplementaryExtractionSchema = z.object({
+const supplementaryExtractionSchema = z.object({
   statements: z.array(statementSchema),
   assessments: z.array(assessmentSchema),
   rubrics: z.array(rubricSchema),
@@ -64,7 +64,6 @@ export type DescriptionKind = "manual" | "study_guide"
 export type DocumentExtraction =
   | ({ kind: DescriptionKind } & ManualExtraction)
   | ({ kind: "supplementary" } & SupplementaryExtraction)
-export type ExtractedStatement = z.infer<typeof statementSchema>
 
 const QUOTE_RULES = `Quoting rules (strict):
 - Every "quote" must be copied verbatim from the document: same words, same order, same language (do not translate). You may drop leading bullet characters and numbering, and you may shorten a long passage by quoting only its most relevant sentence, but never paraphrase or combine separate passages.
@@ -91,7 +90,10 @@ const DESCRIPTION_INTRO: Record<DescriptionKind, string> = {
     "You extract structured information from the public description of a university course in the online study guide, for a quality-assurance tool. Accuracy matters more than completeness.",
 }
 
-export function descriptionSystemPrompt(kind: DescriptionKind, fields: readonly FieldDefinition[]): string {
+function descriptionSystemPrompt(
+  kind: DescriptionKind,
+  fields: readonly FieldDefinition[],
+): string {
   const fieldList = fields
     .map((f) => `- ${f.key} (${describeFieldType(f.type)}): ${f.prompt}`)
     .join("\n")
@@ -111,13 +113,13 @@ ${fieldList}
 ${STATEMENT_RULES}`
 }
 
-export const SUPPLEMENTARY_SYSTEM_PROMPT = `You extract information from supplementary course material (e.g. assignment instructions or rubrics) for a quality-assurance tool. This is not the course manual, so do not look for course metadata.
+const SUPPLEMENTARY_SYSTEM_PROMPT = `You extract information from supplementary course material (e.g. assignment instructions or rubrics) for a quality-assurance tool. This is not the course manual, so do not look for course metadata.
 
 ${QUOTE_RULES}
 
 ${STATEMENT_RULES}`
 
-export interface ExtractionInput {
+interface ExtractionInput {
   kind: DocumentKind
   filename: string
   /** PDF bytes, or the extracted text for other formats. */
@@ -134,7 +136,13 @@ function documentParts(input: ExtractionInput): ContentPart[] {
   if (input.content.type === "pdf") {
     return [intro, { type: "pdf", data: input.content.data, filename: input.filename }]
   }
-  return [intro, { type: "text", text: `--- DOCUMENT TEXT ---\n${input.content.text}\n--- END ---` }]
+  return [
+    intro,
+    {
+      type: "text",
+      text: `--- DOCUMENT TEXT ---\n${input.content.text}\n--- END ---`,
+    },
+  ]
 }
 
 export async function extractDocument(
@@ -160,7 +168,10 @@ export async function extractDocument(
     schema: supplementaryExtractionSchema,
     schemaName: "supplementary_extraction",
   })
-  return { extraction: { kind: "supplementary", ...result.data }, model: result.model }
+  return {
+    extraction: { kind: "supplementary", ...result.data },
+    model: result.model,
+  }
 }
 
 /** Validates cached JSON back into an extraction (the cache stores `unknown`). */

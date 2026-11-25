@@ -34,7 +34,10 @@ app.use("*", session)
 app.onError((error, c) => {
   if (error instanceof HttpError) return c.json(error.toBody(), error.status)
   if (error instanceof ZodError) {
-    return c.json<ApiErrorBody>({ error: error.issues[0]?.message ?? "Invalid request", code: "invalid" }, 400)
+    return c.json<ApiErrorBody>(
+      { error: error.issues[0]?.message ?? "Invalid request", code: "invalid" },
+      400,
+    )
   }
   console.error("[worker] Unhandled error", error)
   return c.json<ApiErrorBody>({ error: "Something went wrong on the server" }, 500)

@@ -24,8 +24,19 @@ interface Slot {
 function slotOf(course: CourseFactsDto): Slot {
   const year = courseYear(course)
   const period = course.periods.length ? Math.min(...course.periods) : null
-  if (year === null) return { key: "unscheduled", year: null, period: null, label: "Not scheduled" }
-  return { key: `${year}|${period ?? 0}`, year, period, label: period ? `P${period}` : "–" }
+  if (year === null)
+    return {
+      key: "unscheduled",
+      year: null,
+      period: null,
+      label: "Not scheduled",
+    }
+  return {
+    key: `${year}|${period ?? 0}`,
+    year,
+    period,
+    label: period ? `P${period}` : "–",
+  }
 }
 
 export function JourneyView() {
@@ -50,16 +61,23 @@ export function JourneyView() {
               onClick={() => setSelected(t.id)}
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm",
-                t.id === trajectory?.id ? "border-foreground bg-foreground text-background" : "hover:bg-muted",
+                t.id === trajectory?.id
+                  ? "border-foreground bg-foreground text-background"
+                  : "hover:bg-muted",
               )}
             >
-              <span className="size-2.5 rounded-full" style={{ background: t.color || "var(--primary)" }} />
+              <span
+                className="size-2.5 rounded-full"
+                style={{ background: t.color || "var(--primary)" }}
+              />
               {t.name}
             </button>
           ))}
         </div>
       </ViewHeader>
-      {(structure.error ?? coverage.error) && <QueryError error={structure.error ?? coverage.error} />}
+      {(structure.error ?? coverage.error) && (
+        <QueryError error={structure.error ?? coverage.error} />
+      )}
       {(!structure.data || !coverage.data) && !structure.error && !coverage.error && <Loading />}
       {trajectory && coverage.data && <Journey trajectory={trajectory} coverage={coverage.data} />}
       <FlowerLegend />
@@ -84,7 +102,8 @@ function Journey({ trajectory, coverage }: { trajectory: TrajectoryDto; coverage
       map.set(slot.key, entry)
     }
     return [...map.values()].sort(
-      (a, b) => (a.slot.year ?? 99) - (b.slot.year ?? 99) || (a.slot.period ?? 0) - (b.slot.period ?? 0),
+      (a, b) =>
+        (a.slot.year ?? 99) - (b.slot.year ?? 99) || (a.slot.period ?? 0) - (b.slot.period ?? 0),
     )
   }, [links, coverage.courses])
 
@@ -93,10 +112,15 @@ function Journey({ trajectory, coverage }: { trajectory: TrajectoryDto; coverage
   return (
     <div className="space-y-4">
       {trajectory.narrative && (
-        <MarkdownView markdown={trajectory.narrative} className="line-clamp-4 max-w-3xl text-sm text-muted-foreground" />
+        <MarkdownView
+          markdown={trajectory.narrative}
+          className="line-clamp-4 max-w-3xl text-sm text-muted-foreground"
+        />
       )}
       {slots.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">No course contributes to this trajectory yet.</p>
+        <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          No course contributes to this trajectory yet.
+        </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full border-separate border-spacing-0 text-sm">
@@ -112,12 +136,17 @@ function Journey({ trajectory, coverage }: { trajectory: TrajectoryDto; coverage
                     {year === null ? "Not scheduled" : `Year ${year}`}
                   </th>
                 ))}
-                <th className="border-b border-l px-3 pt-3 pb-1 text-left font-serif text-base font-semibold">Reached</th>
+                <th className="border-b border-l px-3 pt-3 pb-1 text-left font-serif text-base font-semibold">
+                  Reached
+                </th>
               </tr>
               <tr>
                 <th className="sticky left-0 z-10 border-b bg-card" />
                 {slots.map(({ slot }) => (
-                  <th key={slot.key} className="border-b border-l px-3 py-1 text-left text-xs font-normal text-muted-foreground">
+                  <th
+                    key={slot.key}
+                    className="border-b border-l px-3 py-1 text-left text-xs font-normal text-muted-foreground"
+                  >
                     {slot.year === null ? "" : slot.label}
                   </th>
                 ))}
@@ -130,11 +159,16 @@ function Journey({ trajectory, coverage }: { trajectory: TrajectoryDto; coverage
                   <th className="sticky left-0 z-10 w-72 min-w-56 border-b bg-card px-4 py-3 text-left font-normal">
                     <Link
                       to="/p/$programmeId/ltos/$ltoId"
-                      params={{ programmeId: programme.id, ltoId: String(lto.id) }}
+                      params={{
+                        programmeId: programme.id,
+                        ltoId: String(lto.id),
+                      }}
                       search={(s) => ({ year: s.year })}
                       className="hover:underline"
                     >
-                      <span className="block font-mono text-xs text-muted-foreground">{lto.code}</span>
+                      <span className="block font-mono text-xs text-muted-foreground">
+                        {lto.code}
+                      </span>
                       <span className="line-clamp-3">{lto.title}</span>
                     </Link>
                   </th>
@@ -149,7 +183,10 @@ function Journey({ trajectory, coverage }: { trajectory: TrajectoryDto; coverage
                             <Link
                               key={course.id}
                               to="/p/$programmeId/courses/$courseId"
-                              params={{ programmeId: programme.id, courseId: String(course.id) }}
+                              params={{
+                                programmeId: programme.id,
+                                courseId: String(course.id),
+                              }}
                               search={(s) => ({ year: s.year, lto: lto.id })}
                               className="flex items-center gap-1.5 rounded-md border bg-background px-1.5 py-1 text-xs hover:shadow-sm"
                               title={`${course.name} (${formatPeriods(course.periods)})`}

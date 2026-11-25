@@ -24,7 +24,10 @@ describe("bloom", () => {
   })
 
   it("validates domain/level combinations", () => {
-    expect(parseBloomRef("cognitive", "apply")).toEqual({ domain: "cognitive", level: "apply" })
+    expect(parseBloomRef("cognitive", "apply")).toEqual({
+      domain: "cognitive",
+      level: "apply",
+    })
     expect(parseBloomRef("affective", "apply")).toBeNull()
     expect(parseBloomRef("spiritual", "apply")).toBeNull()
     expect(() => toBloomRef("psychomotor", "valuing")).toThrow()

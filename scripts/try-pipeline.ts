@@ -16,8 +16,18 @@ import { z } from "zod"
 import type { DocumentKind } from "../shared/evidence.ts"
 import { DEFAULT_CUSTOM_FIELDS, SYSTEM_FIELDS } from "../shared/fields.ts"
 import { OpenAiCompatibleClient } from "../worker/ai/openaiCompatible.ts"
-import { LlmRequestError, type GenerateRequest, type GenerateResult, type LlmClient } from "../worker/ai/types.ts"
-import { assembleExtractions, buildLinks, toLinkingStatements, type ExtractedDocument } from "../worker/pipeline/assemble.ts"
+import {
+  LlmRequestError,
+  type GenerateRequest,
+  type GenerateResult,
+  type LlmClient,
+} from "../worker/ai/types.ts"
+import {
+  assembleExtractions,
+  buildLinks,
+  toLinkingStatements,
+  type ExtractedDocument,
+} from "../worker/pipeline/assemble.ts"
 import { documentPages } from "../worker/pipeline/documentText.ts"
 import { extractDocument } from "../worker/pipeline/extract.ts"
 import { linkLto, type LinkingLto } from "../worker/pipeline/link.ts"
@@ -33,11 +43,18 @@ const env = z
   })
   .parse(process.env)
 
-const ltoRow = z.object({ trajectory: z.string(), name: z.string(), outcome: z.string() })
+const ltoRow = z.object({
+  trajectory: z.string(),
+  name: z.string(),
+  outcome: z.string(),
+})
 
 async function loadLtos(only: string[]): Promise<LinkingLto[]> {
   const csv = await readFile(new URL("../data/ltos.csv", import.meta.url), "utf8")
-  const rows = Papa.parse<unknown>(csv, { header: true, skipEmptyLines: true }).data
+  const rows = Papa.parse<unknown>(csv, {
+    header: true,
+    skipEmptyLines: true,
+  }).data
   const ltos = rows.map((row, i) => {
     const r = ltoRow.parse(row)
     return {
@@ -71,7 +88,13 @@ async function main(): Promise<void> {
   const docs: InputDocument[] = []
   if (values.guide) {
     const text = await fetchStudyGuideText(values.guide)
-    docs.push({ id: docs.length + 1, kind: "study_guide", filename: "study guide", content: { type: "text", text }, pages: [text] })
+    docs.push({
+      id: docs.length + 1,
+      kind: "study_guide",
+      filename: "study guide",
+      content: { type: "text", text },
+      pages: [text],
+    })
   }
   for (const file of positionals) {
     const bytes = new Uint8Array(await readFile(file))
@@ -95,15 +118,26 @@ async function main(): Promise<void> {
       fields: doc.kind === "supplementary" ? [] : fields,
       model: env.AI_MODEL_EXTRACT,
     })
-    console.log(`▶ extracted ${doc.kind} ${doc.filename} in ${((Date.now() - started) / 1000).toFixed(1)}s`)
-    extracted.push({ documentId: doc.id, kind: doc.kind, extraction, matcher: new DocumentMatcher(doc.pages) })
+    console.log(
+      `▶ extracted ${doc.kind} ${doc.filename} in ${((Date.now() - started) / 1000).toFixed(1)}s`,
+    )
+    extracted.push({
+      documentId: doc.id,
+      kind: doc.kind,
+      extraction,
+      matcher: new DocumentMatcher(doc.pages),
+    })
   }
   const assembled = assembleExtractions(extracted, fields)
   for (const f of assembled.fields) {
-    console.log(`  ${f.key.padEnd(20)} ${f.status.padEnd(8)} ${(f.source ?? "-").padEnd(12)} ${JSON.stringify(f.value)} [${f.verification}]`)
+    console.log(
+      `  ${f.key.padEnd(20)} ${f.status.padEnd(8)} ${(f.source ?? "-").padEnd(12)} ${JSON.stringify(f.value)} [${f.verification}]`,
+    )
   }
   for (const s of assembled.statements) {
-    console.log(`  [${s.ordinal}] ${s.kind.padEnd(13)} doc${s.documentId} p${s.page ?? "-"} ${s.verification.padEnd(11)} ${s.quote.slice(0, 80)}`)
+    console.log(
+      `  [${s.ordinal}] ${s.kind.padEnd(13)} doc${s.documentId} p${s.page ?? "-"} ${s.verification.padEnd(11)} ${s.quote.slice(0, 80)}`,
+    )
   }
 
   const kinds = new Map(docs.map((d) => [d.id, d.kind]))
@@ -116,12 +150,16 @@ async function main(): Promise<void> {
   const started = Date.now()
   const proposed = []
   for (let i = 0; i < ltos.length; i += 5) {
-    const batch = await Promise.all(ltos.slice(i, i + 5).map((lto) => linkLto(client, env.AI_MODEL_LINK, lto, [course])))
+    const batch = await Promise.all(
+      ltos.slice(i, i + 5).map((lto) => linkLto(client, env.AI_MODEL_LINK, lto, [course])),
+    )
     proposed.push(...batch.flatMap((b) => b.links))
   }
   const byOrdinal = new Map(assembled.statements.map((s) => [s.ordinal, s]))
   const links = buildLinks(proposed, (id) => byOrdinal.get(id), kinds)
-  console.log(`▶ linked ${ltos.length} LTOs in ${((Date.now() - started) / 1000).toFixed(1)}s: ${links.length} links`)
+  console.log(
+    `▶ linked ${ltos.length} LTOs in ${((Date.now() - started) / 1000).toFixed(1)}s: ${links.length} links`,
+  )
   for (const link of links) {
     const lto = ltos.find((l) => l.id === link.ltoId)
     console.log(
@@ -142,7 +180,8 @@ function withRetries(inner: LlmClient, attempts = 4): LlmClient {
         try {
           return await inner.generate(request)
         } catch (error) {
-          if (!(error instanceof LlmRequestError && error.retryable) || attempt >= attempts) throw error
+          if (!(error instanceof LlmRequestError && error.retryable) || attempt >= attempts)
+            throw error
           console.warn(`  (retrying after ${error.status})`)
           await new Promise((resolve) => setTimeout(resolve, 5000 * attempt))
         }

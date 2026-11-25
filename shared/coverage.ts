@@ -27,11 +27,11 @@ export type DomainCoverage<D extends BloomDomain = BloomDomain> = Partial<
 
 export type FlowerCoverage = { [D in BloomDomain]: DomainCoverage<D> }
 
-export function emptyFlower(): FlowerCoverage {
+function emptyFlower(): FlowerCoverage {
   return { cognitive: {}, affective: {}, psychomotor: {} }
 }
 
-export function strongest(
+function strongest(
   a: CoverageState | undefined,
   b: CoverageState | undefined,
 ): CoverageState | undefined {

@@ -16,7 +16,12 @@ export class ApiError extends Error {
 }
 
 function isErrorBody(value: unknown): value is ApiErrorBody {
-  return typeof value === "object" && value !== null && "error" in value && typeof value.error === "string"
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "error" in value &&
+    typeof value.error === "string"
+  )
 }
 
 async function handle<T>(response: Response): Promise<T> {
@@ -56,7 +61,13 @@ export async function apiSend<T>(
 }
 
 export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
-  return handle<T>(await fetch(path, { method: "POST", credentials: "same-origin", body: form }))
+  return handle<T>(
+    await fetch(path, {
+      method: "POST",
+      credentials: "same-origin",
+      body: form,
+    }),
+  )
 }
 
 export function errorMessage(error: unknown): string {

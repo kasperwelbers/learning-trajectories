@@ -13,8 +13,19 @@ interface QuoteProps {
 }
 
 /** A verbatim quote from a course document, with where it comes from. */
-export function Quote({ programmeId, quote, context, kind, page, verification, document, assessedBy }: QuoteProps) {
-  const href = document ? `/api/p/${programmeId}/documents/${document.id}/file${page ? `#page=${page}` : ""}` : undefined
+export function Quote({
+  programmeId,
+  quote,
+  context,
+  kind,
+  page,
+  verification,
+  document,
+  assessedBy,
+}: QuoteProps) {
+  const href = document
+    ? `/api/p/${programmeId}/documents/${document.id}/file${page ? `#page=${page}` : ""}`
+    : undefined
   return (
     <figure className="space-y-1.5">
       <blockquote className="border-l-2 border-border pl-3 text-sm leading-relaxed">

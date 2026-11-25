@@ -7,7 +7,13 @@ import { queries, useApiMutation } from "@/api/queries"
 import { Loading, QueryError } from "@/components/layout/ErrorView"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useProgramme } from "@/hooks/useProgramme"
 import { SettingsSection } from "./SettingsPage"
 
@@ -17,7 +23,8 @@ export function MembersSettings() {
   const structure = useQuery(queries.structure(programme.id))
   const courses = useQuery(queries.courses(programme.id, year))
 
-  const trajectoryName = (id: number) => structure.data?.trajectories.find((t) => t.id === id)?.name ?? `trajectory ${id}`
+  const trajectoryName = (id: number) =>
+    structure.data?.trajectories.find((t) => t.id === id)?.name ?? `trajectory ${id}`
   const courseName = (id: number) => {
     const c = courses.data?.courses.find((x) => x.id === id)
     return c ? `${c.code} ${c.name}` : `course ${id}`
@@ -30,7 +37,11 @@ export function MembersSettings() {
         : `Coordinator of ${courseName(a.courseId)}`
 
   const remove = useApiMutation<{ email: string; assignment: RoleAssignment }>({
-    request: (body) => ({ method: "POST", path: `/api/p/${programme.id}/members/remove`, body }),
+    request: (body) => ({
+      method: "POST",
+      path: `/api/p/${programme.id}/members/remove`,
+      body,
+    }),
     invalidate: () => [keys.members(programme.id)],
   })
 
@@ -48,7 +59,10 @@ export function MembersSettings() {
             <span className="w-64 truncate font-medium">{m.email}</span>
             <span className="flex flex-1 flex-wrap gap-1.5">
               {m.assignments.map((a, i) => (
-                <span key={i} className="inline-flex items-center gap-1 rounded-full bg-muted py-0.5 pr-1 pl-2.5 text-xs">
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 rounded-full bg-muted py-0.5 pr-1 pl-2.5 text-xs"
+                >
                   {describe(a)}
                   <button
                     type="button"
@@ -76,7 +90,11 @@ function AddMember() {
   const [role, setRole] = useState<Role>("course_coordinator")
   const [scope, setScope] = useState("")
   const add = useApiMutation<{ email: string; assignment: RoleAssignment }>({
-    request: (body) => ({ method: "POST", path: `/api/p/${programme.id}/members`, body }),
+    request: (body) => ({
+      method: "POST",
+      path: `/api/p/${programme.id}/members`,
+      body,
+    }),
     invalidate: () => [keys.members(programme.id)],
     success: "Member added",
   })
@@ -88,16 +106,36 @@ function AddMember() {
       role === "admin"
         ? { role }
         : role === "trajectory_coordinator"
-          ? id ? { role, trajectoryId: id } : null
-          : id ? { role, courseId: id } : null
+          ? id
+            ? { role, trajectoryId: id }
+            : null
+          : id
+            ? { role, courseId: id }
+            : null
     if (!assignment) return
     add.mutate({ email, assignment }, { onSuccess: () => setEmail("") })
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
-      <Input type="email" required placeholder="name@university.nl" value={email} onChange={(e) => setEmail(e.target.value)} className="w-64" />
-      <Select value={role} onValueChange={(v) => { setRole(ROLES.find((r) => r === v) ?? "course_coordinator"); setScope("") }}>
+    <form
+      onSubmit={submit}
+      className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3"
+    >
+      <Input
+        type="email"
+        required
+        placeholder="name@university.nl"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-64"
+      />
+      <Select
+        value={role}
+        onValueChange={(v) => {
+          setRole(ROLES.find((r) => r === v) ?? "course_coordinator")
+          setScope("")
+        }}
+      >
         <SelectTrigger className="w-52">
           <SelectValue />
         </SelectTrigger>
@@ -112,7 +150,11 @@ function AddMember() {
       {role !== "admin" && (
         <Select value={scope} onValueChange={setScope}>
           <SelectTrigger className="w-64">
-            <SelectValue placeholder={role === "trajectory_coordinator" ? "Which trajectory?" : "Which course?"} />
+            <SelectValue
+              placeholder={
+                role === "trajectory_coordinator" ? "Which trajectory?" : "Which course?"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {role === "trajectory_coordinator"

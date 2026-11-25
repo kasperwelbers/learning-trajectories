@@ -39,10 +39,19 @@ function CourseImport() {
     event.preventDefault()
     setBusy(true)
     try {
-      const list = urls.split(/\s+/).map((u) => u.trim()).filter((u) => u.length > 0)
-      const result = await apiSend<ImportPreviewResponse>("POST", `/api/p/${programme.id}/courses/import-preview`, { urls: list })
+      const list = urls
+        .split(/\s+/)
+        .map((u) => u.trim())
+        .filter((u) => u.length > 0)
+      const result = await apiSend<ImportPreviewResponse>(
+        "POST",
+        `/api/p/${programme.id}/courses/import-preview`,
+        { urls: list },
+      )
       setPreview(result)
-      setSelected(new Set(result.courses.filter((c) => c.suggested && !c.exists).map((c) => c.code)))
+      setSelected(
+        new Set(result.courses.filter((c) => c.suggested && !c.exists).map((c) => c.code)),
+      )
     } catch (error) {
       toast.error(errorMessage(error))
     } finally {
@@ -56,13 +65,26 @@ function CourseImport() {
     try {
       const courses = preview.courses
         .filter((c) => selected.has(c.code) && !c.exists)
-        .map((c) => ({ code: c.code, name: c.name, programmeYear: c.programmeYear }))
-      const { created } = await apiSend<{ created: number }>("POST", `/api/p/${programme.id}/courses/bulk`, { courses })
+        .map((c) => ({
+          code: c.code,
+          name: c.name,
+          programmeYear: c.programmeYear,
+        }))
+      const { created } = await apiSend<{ created: number }>(
+        "POST",
+        `/api/p/${programme.id}/courses/bulk`,
+        { courses },
+      )
       const fromVu = preview.courses.some((c) => c.url?.startsWith("https://studiegids.vu.nl/"))
       if (fromVu && !programme.studyGuideUrlTemplate) {
-        await apiSend("PATCH", `/api/p/${programme.id}`, { studyGuideUrlTemplate: VU_COURSE_TEMPLATE, version: programme.version })
+        await apiSend("PATCH", `/api/p/${programme.id}`, {
+          studyGuideUrlTemplate: VU_COURSE_TEMPLATE,
+          version: programme.version,
+        })
       }
-      toast.success(`${created} courses added${fromVu ? ". Use “Fetch study guides” on the courses page to analyse them." : ""}`)
+      toast.success(
+        `${created} courses added${fromVu ? ". Use “Fetch study guides” on the courses page to analyse them." : ""}`,
+      )
       setPreview(null)
       await queryClient.invalidateQueries({ queryKey: ["p", programme.id] })
     } catch (error) {
@@ -77,8 +99,8 @@ function CourseImport() {
       title="Import courses from web pages"
       description={
         <>
-          Paste the address of the programme&apos;s page in the online study guide (VU study guide pages are read exactly; other pages are read by the AI).
-          You choose which courses to add.
+          Paste the address of the programme&apos;s page in the online study guide (VU study guide
+          pages are read exactly; other pages are read by the AI). You choose which courses to add.
         </>
       }
     >
@@ -95,7 +117,15 @@ function CourseImport() {
           {busy ? <Loader2 className="animate-spin" /> : <Search />} Find courses
         </Button>
       </form>
-      {preview && <CoursePreview preview={preview} selected={selected} onChange={setSelected} onCreate={() => void create()} busy={busy} />}
+      {preview && (
+        <CoursePreview
+          preview={preview}
+          selected={selected}
+          onChange={setSelected}
+          onCreate={() => void create()}
+          busy={busy}
+        />
+      )}
     </SettingsSection>
   )
 }
@@ -115,7 +145,8 @@ function CoursePreview({
 }) {
   const groups = useMemo(() => {
     const map = new Map<string, ProposedCourseDto[]>()
-    for (const c of preview.courses) map.set(c.group || "Courses", [...(map.get(c.group || "Courses") ?? []), c])
+    for (const c of preview.courses)
+      map.set(c.group || "Courses", [...(map.get(c.group || "Courses") ?? []), c])
     return [...map.entries()]
   }, [preview])
   const toggle = (codes: string[], on: boolean) => {
@@ -137,7 +168,8 @@ function CoursePreview({
         </p>
       ))}
       <p className="text-sm text-muted-foreground">
-        Found {preview.courses.length} courses. Regular courses of the programme are pre-selected; minors and electives are not.
+        Found {preview.courses.length} courses. Regular courses of the programme are pre-selected;
+        minors and electives are not.
       </p>
       <div className="max-h-[32rem] overflow-y-auto rounded-xl border bg-card">
         {groups.map(([group, courses]) => (
@@ -146,13 +178,26 @@ function CoursePreview({
               <input
                 type="checkbox"
                 checked={courses.every((c) => c.exists || selected.has(c.code))}
-                onChange={(e) => toggle(courses.filter((c) => !c.exists).map((c) => c.code), e.target.checked)}
+                onChange={(e) =>
+                  toggle(
+                    courses.filter((c) => !c.exists).map((c) => c.code),
+                    e.target.checked,
+                  )
+                }
               />
               {group}
             </label>
             {courses.map((c) => (
-              <label key={c.code} className="flex items-center gap-3 px-4 py-1.5 text-sm hover:bg-muted/40">
-                <input type="checkbox" disabled={c.exists} checked={c.exists || selected.has(c.code)} onChange={(e) => toggle([c.code], e.target.checked)} />
+              <label
+                key={c.code}
+                className="flex items-center gap-3 px-4 py-1.5 text-sm hover:bg-muted/40"
+              >
+                <input
+                  type="checkbox"
+                  disabled={c.exists}
+                  checked={c.exists || selected.has(c.code)}
+                  onChange={(e) => toggle([c.code], e.target.checked)}
+                />
                 <span className="w-24 font-mono text-xs text-muted-foreground">{c.code}</span>
                 <span className="flex-1">{c.name}</span>
                 <span className="text-xs text-muted-foreground">
@@ -182,8 +227,14 @@ interface LtoRow {
 }
 
 /** Accepts the prototype's export (trajectory,name,outcome) and similar column names. */
-export function parseLtoCsv(text: string): { rows: LtoRow[]; error: string | null } {
-  const parsed = Papa.parse<Record<string, string>>(text.trim(), { header: true, skipEmptyLines: true })
+export function parseLtoCsv(text: string): {
+  rows: LtoRow[]
+  error: string | null
+} {
+  const parsed = Papa.parse<Record<string, string>>(text.trim(), {
+    header: true,
+    skipEmptyLines: true,
+  })
   const pick = (row: Record<string, string>, names: string[]) => {
     for (const name of names) {
       const key = Object.keys(row).find((k) => k.trim().toLowerCase() === name)
@@ -199,7 +250,12 @@ export function parseLtoCsv(text: string): { rows: LtoRow[]; error: string | nul
       title: pick(row, ["title", "outcome", "description"]),
     }))
     .filter((r) => r.trajectory && r.code && r.title)
-  if (rows.length === 0) return { rows, error: "No rows found. The CSV needs columns trajectory, code (or name) and title (or outcome)." }
+  if (rows.length === 0)
+    return {
+      rows,
+      error:
+        "No rows found. The CSV needs columns trajectory, code (or name) and title (or outcome).",
+    }
   return { rows, error: null }
 }
 
@@ -209,9 +265,14 @@ function LtoImport() {
   const [rows, setRows] = useState<LtoRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const importLtos = useApiMutation<LtoRow[], ImportLtosResponse>({
-    request: (list) => ({ method: "POST", path: `/api/p/${programme.id}/ltos/import`, body: { rows: list } }),
+    request: (list) => ({
+      method: "POST",
+      path: `/api/p/${programme.id}/ltos/import`,
+      body: { rows: list },
+    }),
     invalidate: () => [keys.structure(programme.id)],
-    success: (r) => `Created ${r.trajectoriesCreated} trajectories and ${r.ltosCreated} LTOs; updated ${r.ltosUpdated} LTOs`,
+    success: (r) =>
+      `Created ${r.trajectoriesCreated} trajectories and ${r.ltosCreated} LTOs; updated ${r.ltosUpdated} LTOs`,
   })
 
   const read = async (file: File) => {
@@ -257,7 +318,10 @@ function LtoImport() {
               </tbody>
             </table>
           </div>
-          <Button disabled={importLtos.isPending} onClick={() => importLtos.mutate(rows, { onSuccess: () => setRows(null) })}>
+          <Button
+            disabled={importLtos.isPending}
+            onClick={() => importLtos.mutate(rows, { onSuccess: () => setRows(null) })}
+          >
             Import {rows.length} LTOs
           </Button>
         </div>

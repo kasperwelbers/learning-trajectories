@@ -37,10 +37,7 @@ programmeListRoutes.get("/", async (c) => {
         .innerJoin(programmeRoles, eq(programmeRoles.programmeId, programmes.id))
         .where(eq(programmeRoles.userId, user.id))
         .orderBy(desc(programmes.createdAt))
-  const roles = await db
-    .select()
-    .from(programmeRoles)
-    .where(eq(programmeRoles.userId, user.id))
+  const roles = await db.select().from(programmeRoles).where(eq(programmeRoles.userId, user.id))
   const result: ProgrammeSummaryDto[] = rows.map((p) => ({
     id: p.id,
     name: p.name,

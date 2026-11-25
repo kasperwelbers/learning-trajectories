@@ -19,13 +19,19 @@ interface SourceResult {
 
 // ── VU study guide ──────────────────────────────────────────────────────────
 
-const VU_PROGRAMME_URL = /^https:\/\/studiegids\.vu\.nl\/(en|nl)\/(Bachelor|Master|Premaster|Postgraduate)\/(\d{4}-\d{4})\/([\w-]+)/i
+const VU_PROGRAMME_URL =
+  /^https:\/\/studiegids\.vu\.nl\/(en|nl)\/(Bachelor|Master|Premaster|Postgraduate)\/(\d{4}-\d{4})\/([\w-]+)/i
 
 interface VuModuleGroup {
   code: string
   type: string
   description: string
-  courses: { code: string; name: string; credits: string; periods: { code: string }[] }[]
+  courses: {
+    code: string
+    name: string
+    credits: string
+    periods: { code: string }[]
+  }[]
   moduleGroups: VuModuleGroup[]
 }
 
@@ -65,7 +71,15 @@ export function parseVuPeriods(code: string): number[] {
 
 /** "First year bachelor" → 1. */
 export function programmeYearFrom(text: string): number | null {
-  const words: Record<string, number> = { first: 1, second: 2, third: 3, fourth: 4, eerste: 1, tweede: 2, derde: 3 }
+  const words: Record<string, number> = {
+    first: 1,
+    second: 2,
+    third: 3,
+    fourth: 4,
+    eerste: 1,
+    tweede: 2,
+    derde: 3,
+  }
   const lower = text.toLowerCase()
   for (const [word, year] of Object.entries(words)) if (lower.includes(word)) return year
   const digit = /year\s*(\d)|jaar\s*(\d)/.exec(lower)
@@ -74,11 +88,21 @@ export function programmeYearFrom(text: string): number | null {
 
 const ELECTIVE_TYPES = /minor|elective|free choice|vrije keuze|minorchoice/i
 
-export function flattenVuCurriculum(groups: readonly VuModuleGroup[], lang: string, year: string): Proposal[] {
+export function flattenVuCurriculum(
+  groups: readonly VuModuleGroup[],
+  lang: string,
+  year: string,
+): Proposal[] {
   const result: Proposal[] = []
-  const visit = (group: VuModuleGroup, inheritedYear: number | null, elective: boolean, label: string) => {
+  const visit = (
+    group: VuModuleGroup,
+    inheritedYear: number | null,
+    elective: boolean,
+    label: string,
+  ) => {
     const ownYear = programmeYearFrom(group.description) ?? inheritedYear
-    const isElective = elective || ELECTIVE_TYPES.test(group.type) || ELECTIVE_TYPES.test(group.description)
+    const isElective =
+      elective || ELECTIVE_TYPES.test(group.type) || ELECTIVE_TYPES.test(group.description)
     const groupLabel = label ? `${label} › ${group.description}` : group.description
     for (const course of group.courses) {
       const credits = Number(course.credits)
@@ -100,14 +124,29 @@ export function flattenVuCurriculum(groups: readonly VuModuleGroup[], lang: stri
   return result
 }
 
-async function fromVuStudyGuide(url: string, match: RegExpExecArray, fetchImpl: typeof fetch): Promise<SourceResult> {
+async function fromVuStudyGuide(
+  url: string,
+  match: RegExpExecArray,
+  fetchImpl: typeof fetch,
+): Promise<SourceResult> {
   const [, lang = "en", type = "Bachelor", year = "", slug = ""] = match
   const api = `https://studiegids.vu.nl/api/studyguide/${lang.toUpperCase()}/${type}/${year}/studies/${slug}`
-  const response = await fetchImpl(api, { headers: { Accept: "application/json" } })
-  if (!response.ok) return { url, courses: [], error: `The study guide API returned HTTP ${response.status}` }
+  const response = await fetchImpl(api, {
+    headers: { Accept: "application/json" },
+  })
+  if (!response.ok)
+    return {
+      url,
+      courses: [],
+      error: `The study guide API returned HTTP ${response.status}`,
+    }
   const parsed = vuStudy.safeParse(await response.json())
   if (!parsed.success) return { url, courses: [], error: "Unexpected study guide data" }
-  return { url, courses: flattenVuCurriculum(parsed.data.moduleGroups, lang.toLowerCase(), year), error: null }
+  return {
+    url,
+    courses: flattenVuCurriculum(parsed.data.moduleGroups, lang.toLowerCase(), year),
+    error: null,
+  }
 }
 
 // ── Any other web page (AI) ─────────────────────────────────────────────────
@@ -145,10 +184,16 @@ For each course return:
 
 Only list courses that appear on the pages. Do not invent courses or details. Each course once.`
 
-async function fetchPageText(url: string, fetchImpl: typeof fetch): Promise<{ text: string | null; error: string | null }> {
+async function fetchPageText(
+  url: string,
+  fetchImpl: typeof fetch,
+): Promise<{ text: string | null; error: string | null }> {
   try {
     const response = await fetchImpl(url, {
-      headers: { Accept: "text/html,text/plain", "User-Agent": "LearningTrajectories/1.0 (course import)" },
+      headers: {
+        Accept: "text/html,text/plain",
+        "User-Agent": "LearningTrajectories/1.0 (course import)",
+      },
       redirect: "follow",
     })
     if (!response.ok) return { text: null, error: `HTTP ${response.status}` }
@@ -156,25 +201,34 @@ async function fetchPageText(url: string, fetchImpl: typeof fetch): Promise<{ te
     const type = response.headers.get("Content-Type") ?? ""
     const text = type.includes("html") ? htmlWithLinks(body, url) : body
     if (text.trim().length < 50) {
-      return { text: null, error: "The page has almost no text (it may need JavaScript to render)" }
+      return {
+        text: null,
+        error: "The page has almost no text (it may need JavaScript to render)",
+      }
     }
     return { text: text.slice(0, MAX_PAGE_CHARS), error: null }
   } catch (error) {
-    return { text: null, error: error instanceof Error ? error.message : "Could not fetch the page" }
+    return {
+      text: null,
+      error: error instanceof Error ? error.message : "Could not fetch the page",
+    }
   }
 }
 
 /** Keep link targets in the text so the model can return course URLs. */
 function htmlWithLinks(html: string, base: string): string {
-  const withLinks = html.replace(/<a\s[^>]*href="([^"#]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, label: string) => {
-    let absolute = href
-    try {
-      absolute = new URL(href, base).toString()
-    } catch {
-      // keep as is
-    }
-    return `${label} [${absolute}]`
-  })
+  const withLinks = html.replace(
+    /<a\s[^>]*href="([^"#]+)"[^>]*>([\s\S]*?)<\/a>/gi,
+    (_m, href: string, label: string) => {
+      let absolute = href
+      try {
+        absolute = new URL(href, base).toString()
+      } catch {
+        // keep as is
+      }
+      return `${label} [${absolute}]`
+    },
+  )
   return htmlToText(withLinks)
 }
 
@@ -208,14 +262,23 @@ async function fromWebPage(env: Env, url: string): Promise<SourceResult> {
 
 // ── Entry point ─────────────────────────────────────────────────────────────
 
-export async function proposeCoursesFromUrls(env: Env, urls: string[]): Promise<ImportPreviewResponse> {
+export async function proposeCoursesFromUrls(
+  env: Env,
+  urls: string[],
+): Promise<ImportPreviewResponse> {
   const results = await Promise.all(
     urls.map(async (url): Promise<SourceResult> => {
       try {
         const vu = VU_PROGRAMME_URL.exec(url)
-        return vu ? await fromVuStudyGuide(url, vu, outboundFetch(env)) : await fromWebPage(env, url)
+        return vu
+          ? await fromVuStudyGuide(url, vu, outboundFetch(env))
+          : await fromWebPage(env, url)
       } catch (error) {
-        return { url, courses: [], error: error instanceof Error ? error.message : "Import failed" }
+        return {
+          url,
+          courses: [],
+          error: error instanceof Error ? error.message : "Import failed",
+        }
       }
     }),
   )
@@ -229,6 +292,10 @@ export async function proposeCoursesFromUrls(env: Env, urls: string[]): Promise<
   }
   return {
     courses,
-    sources: results.map((r) => ({ url: r.url, ok: r.error === null, error: r.error })),
+    sources: results.map((r) => ({
+      url: r.url,
+      ok: r.error === null,
+      error: r.error,
+    })),
   }
 }

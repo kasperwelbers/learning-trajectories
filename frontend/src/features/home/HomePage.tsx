@@ -9,7 +9,14 @@ import { queries, useApiMutation } from "@/api/queries"
 import { Loading, QueryError } from "@/components/layout/ErrorView"
 import { UserMenu } from "@/components/layout/UserMenu"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -17,7 +24,10 @@ export function HomePage() {
   const { share } = useSearch({ from: "/" })
   const me = useQuery(queries.me())
   const user = me.data?.user
-  const programmes = useQuery({ ...queries.programmes(), enabled: Boolean(user) })
+  const programmes = useQuery({
+    ...queries.programmes(),
+    enabled: Boolean(user),
+  })
 
   if (me.isPending) return <Loading />
   if (!user) return <Navigate to="/login" />
@@ -65,7 +75,8 @@ export function HomePage() {
                 </span>
                 <span className="text-sm text-muted-foreground">Current year {p.currentYear}</span>
                 <span className="text-xs text-muted-foreground">
-                  {[...new Set(p.roles.map((r) => ROLE_LABELS[r.role]))].join(" · ") || "Server admin"}
+                  {[...new Set(p.roles.map((r) => ROLE_LABELS[r.role]))].join(" · ") ||
+                    "Server admin"}
                 </span>
               </Link>
             </li>
@@ -89,7 +100,10 @@ function CreateProgrammeDialog() {
     event.preventDefault()
     create.mutate(
       { name, currentYear: year },
-      { onSuccess: ({ id }) => void navigate({ to: "/p/$programmeId", params: { programmeId: id } }) },
+      {
+        onSuccess: ({ id }) =>
+          void navigate({ to: "/p/$programmeId", params: { programmeId: id } }),
+      },
     )
   }
   return (
@@ -106,11 +120,23 @@ function CreateProgrammeDialog() {
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="programme-name">Name</Label>
-            <Input id="programme-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="BSc Communication Science" />
+            <Input
+              id="programme-name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="BSc Communication Science"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="programme-year">Current academic year</Label>
-            <Input id="programme-year" required pattern="\d{4}-\d{4}" value={year} onChange={(e) => setYear(e.target.value)} />
+            <Input
+              id="programme-year"
+              required
+              pattern="\d{4}-\d{4}"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+            />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={create.isPending}>

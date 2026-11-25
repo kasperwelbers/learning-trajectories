@@ -25,5 +25,4 @@ export interface ProgrammeEnv {
   }
 }
 
-export type AppContext = Context<AppEnv>
 export type ProgrammeContext = Context<ProgrammeEnv>

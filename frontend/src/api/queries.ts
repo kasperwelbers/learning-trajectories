@@ -21,13 +21,26 @@ import { keys } from "./keys"
 
 /** Query definitions, one per resource. Components use them with useQuery/useSuspenseQuery. */
 export const queries = {
-  me: () => queryOptions({ queryKey: keys.me, queryFn: () => apiGet<MeResponse>("/api/auth/me") }),
+  me: () =>
+    queryOptions({
+      queryKey: keys.me,
+      queryFn: () => apiGet<MeResponse>("/api/auth/me"),
+    }),
   programmes: () =>
-    queryOptions({ queryKey: keys.programmes, queryFn: () => apiGet<ProgrammeSummaryDto[]>("/api/programmes") }),
+    queryOptions({
+      queryKey: keys.programmes,
+      queryFn: () => apiGet<ProgrammeSummaryDto[]>("/api/programmes"),
+    }),
   programme: (pid: string) =>
-    queryOptions({ queryKey: keys.programme(pid), queryFn: () => apiGet<ProgrammeDto>(`/api/p/${pid}`) }),
+    queryOptions({
+      queryKey: keys.programme(pid),
+      queryFn: () => apiGet<ProgrammeDto>(`/api/p/${pid}`),
+    }),
   members: (pid: string) =>
-    queryOptions({ queryKey: keys.members(pid), queryFn: () => apiGet<MemberDto[]>(`/api/p/${pid}/members`) }),
+    queryOptions({
+      queryKey: keys.members(pid),
+      queryFn: () => apiGet<MemberDto[]>(`/api/p/${pid}/members`),
+    }),
   shareLinks: (pid: string) =>
     queryOptions({
       queryKey: keys.shareLinks(pid),
@@ -39,14 +52,20 @@ export const queries = {
       queryFn: () => apiGet<StructureResponse>(`/api/p/${pid}/structure`),
     }),
   frameworks: (pid: string) =>
-    queryOptions({ queryKey: keys.frameworks(pid), queryFn: () => apiGet<FrameworkDto[]>(`/api/p/${pid}/frameworks`) }),
+    queryOptions({
+      queryKey: keys.frameworks(pid),
+      queryFn: () => apiGet<FrameworkDto[]>(`/api/p/${pid}/frameworks`),
+    }),
   justifications: (pid: string) =>
     queryOptions({
       queryKey: keys.justifications(pid),
       queryFn: () => apiGet<JustificationDto[]>(`/api/p/${pid}/justifications`),
     }),
   fields: (pid: string) =>
-    queryOptions({ queryKey: keys.fields(pid), queryFn: () => apiGet<FieldDto[]>(`/api/p/${pid}/fields`) }),
+    queryOptions({
+      queryKey: keys.fields(pid),
+      queryFn: () => apiGet<FieldDto[]>(`/api/p/${pid}/fields`),
+    }),
   courses: (pid: string, year: string) =>
     queryOptions({
       queryKey: keys.courses(pid, year),
@@ -65,7 +84,8 @@ export const queries = {
   evidence: (pid: string, ltoId: number, year: string) =>
     queryOptions({
       queryKey: keys.evidence(pid, ltoId, year),
-      queryFn: () => apiGet<LtoEvidenceResponse>(`/api/p/${pid}/ltos/${ltoId}/evidence?year=${year}`),
+      queryFn: () =>
+        apiGet<LtoEvidenceResponse>(`/api/p/${pid}/ltos/${ltoId}/evidence?year=${year}`),
     }),
   metadata: (pid: string, year: string) =>
     queryOptions({
@@ -88,7 +108,9 @@ interface ApiMutationOptions<TVars, TResult> {
 }
 
 /** A mutation against our API with consistent invalidation and error toasts. */
-export function useApiMutation<TVars, TResult = { ok: true }>(options: ApiMutationOptions<TVars, TResult>) {
+export function useApiMutation<TVars, TResult = { ok: true }>(
+  options: ApiMutationOptions<TVars, TResult>,
+) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (vars: TVars) => {
@@ -99,7 +121,9 @@ export function useApiMutation<TVars, TResult = { ok: true }>(options: ApiMutati
       const success = options.success
       if (success) toast.success(typeof success === "string" ? success : success(result, vars))
       await Promise.all(
-        (options.invalidate?.(vars, result) ?? []).map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+        (options.invalidate?.(vars, result) ?? []).map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
       )
     },
     onError: (error) => {

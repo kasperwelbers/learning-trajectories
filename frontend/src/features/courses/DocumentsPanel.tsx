@@ -14,7 +14,13 @@ import { formatBytes, formatDate } from "@/lib/format"
 
 const ACCEPT = ".pdf,.docx,.txt,.md,.html"
 
-export function DocumentsPanel({ detail, canEdit }: { detail: CourseDetailResponse; canEdit: boolean }) {
+export function DocumentsPanel({
+  detail,
+  canEdit,
+}: {
+  detail: CourseDetailResponse
+  canEdit: boolean
+}) {
   const byKind = (kind: DocumentKind) => detail.documents.filter((d) => d.kind === kind)
   return (
     <section className="space-y-4 rounded-xl border bg-card p-5">
@@ -45,20 +51,38 @@ function useInvalidateCourse(courseId: number) {
   const queryClient = useQueryClient()
   return () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["p", programme.id, "course", courseId, year] }),
-      queryClient.invalidateQueries({ queryKey: ["p", programme.id, "courses"] }),
+      queryClient.invalidateQueries({
+        queryKey: ["p", programme.id, "course", courseId, year],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["p", programme.id, "courses"],
+      }),
     ])
 }
 
-function StudyGuideSection({ detail, documents, canEdit }: { detail: CourseDetailResponse; documents: DocumentDto[]; canEdit: boolean }) {
+function StudyGuideSection({
+  detail,
+  documents,
+  canEdit,
+}: {
+  detail: CourseDetailResponse
+  documents: DocumentDto[]
+  canEdit: boolean
+}) {
   const { programme, year } = useProgramme()
   const suggested = programme.studyGuideUrlTemplate
-    ? programme.studyGuideUrlTemplate.replaceAll("{code}", encodeURIComponent(detail.course.code)).replaceAll("{year}", year)
+    ? programme.studyGuideUrlTemplate
+        .replaceAll("{code}", encodeURIComponent(detail.course.code))
+        .replaceAll("{year}", year)
     : ""
   const [url, setUrl] = useState(documents[0]?.sourceUrl ?? suggested)
   const invalidate = useInvalidateCourse(detail.course.id)
   const fetchGuide = useApiMutation<string>({
-    request: (value) => ({ method: "POST", path: `/api/p/${programme.id}/courses/${detail.course.id}/study-guide`, body: { year, url: value } }),
+    request: (value) => ({
+      method: "POST",
+      path: `/api/p/${programme.id}/courses/${detail.course.id}/study-guide`,
+      body: { year, url: value },
+    }),
     success: "Study guide page fetched; the course is being analysed",
   })
   const submit = (event: SyntheticEvent) => {
@@ -73,12 +97,29 @@ function StudyGuideSection({ detail, documents, canEdit }: { detail: CourseDetai
       {documents.map((doc) => (
         <DocumentItem key={doc.id} doc={doc} courseId={detail.course.id} canEdit={canEdit} />
       ))}
-      {documents.length === 0 && <p className="text-xs text-muted-foreground">The public course description, fetched from a web page.</p>}
+      {documents.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          The public course description, fetched from a web page.
+        </p>
+      )}
       {canEdit && (
         <form onSubmit={submit} className="flex gap-2">
-          <Input type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className="h-8 text-xs" />
+          <Input
+            type="url"
+            required
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://…"
+            className="h-8 text-xs"
+          />
           <Button type="submit" size="sm" variant="outline" disabled={fetchGuide.isPending}>
-            {fetchGuide.isPending ? <Loader2 className="animate-spin" /> : documents.length ? "Refresh" : "Fetch"}
+            {fetchGuide.isPending ? (
+              <Loader2 className="animate-spin" />
+            ) : documents.length ? (
+              "Refresh"
+            ) : (
+              "Fetch"
+            )}
           </Button>
         </form>
       )}
@@ -115,7 +156,11 @@ function UploadSection({
       }
     },
     onSuccess: async (_r, files) => {
-      toast.success(kind === "manual" ? "Manual uploaded; the course is being analysed" : `${files.length} file(s) uploaded`)
+      toast.success(
+        kind === "manual"
+          ? "Manual uploaded; the course is being analysed"
+          : `${files.length} file(s) uploaded`,
+      )
       await invalidate()
     },
     onError: (error) => toast.error(errorMessage(error)),
@@ -131,9 +176,18 @@ function UploadSection({
       <p className="text-xs text-muted-foreground">{hint}</p>
       {canEdit && (
         <>
-          <Button size="sm" variant="outline" disabled={upload.isPending} onClick={() => input.current?.click()}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={upload.isPending}
+            onClick={() => input.current?.click()}
+          >
             {upload.isPending ? <Loader2 className="animate-spin" /> : <FileUp />}
-            {kind === "manual" && documents.length > 0 ? "Replace manual" : multiple ? "Add files" : "Upload"}
+            {kind === "manual" && documents.length > 0
+              ? "Replace manual"
+              : multiple
+                ? "Add files"
+                : "Upload"}
           </Button>
           <input
             ref={input}
@@ -153,17 +207,33 @@ function UploadSection({
   )
 }
 
-function DocumentItem({ doc, courseId, canEdit }: { doc: DocumentDto; courseId: number; canEdit: boolean }) {
+function DocumentItem({
+  doc,
+  courseId,
+  canEdit,
+}: {
+  doc: DocumentDto
+  courseId: number
+  canEdit: boolean
+}) {
   const { programme } = useProgramme()
   const invalidate = useInvalidateCourse(courseId)
   const remove = useApiMutation<undefined>({
-    request: () => ({ method: "DELETE", path: `/api/p/${programme.id}/documents/${doc.id}` }),
+    request: () => ({
+      method: "DELETE",
+      path: `/api/p/${programme.id}/documents/${doc.id}`,
+    }),
     success: "Document removed",
   })
   return (
     <div className="flex items-start gap-2 rounded-md bg-muted/50 px-2.5 py-2 text-sm">
       <div className="min-w-0 flex-1">
-        <a href={`/api/p/${programme.id}/documents/${doc.id}/file`} target="_blank" rel="noreferrer" className="block truncate hover:underline">
+        <a
+          href={`/api/p/${programme.id}/documents/${doc.id}/file`}
+          target="_blank"
+          rel="noreferrer"
+          className="block truncate hover:underline"
+        >
           {doc.filename}
         </a>
         <p className="text-xs text-muted-foreground">
@@ -171,7 +241,12 @@ function DocumentItem({ doc, courseId, canEdit }: { doc: DocumentDto; courseId: 
           {doc.uploadedBy ? ` · ${doc.uploadedBy}` : ""}
         </p>
         {doc.sourceUrl && (
-          <a href={doc.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:underline">
+          <a
+            href={doc.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:underline"
+          >
             source <ExternalLink className="size-3" />
           </a>
         )}
@@ -199,8 +274,13 @@ function CanvasTip() {
         <Info className="size-3.5" /> Getting material out of Canvas
       </summary>
       <ul className="mt-2 list-disc space-y-1 pl-5">
-        <li>Files: open <em>Files</em>, select files and choose <em>Download</em>.</li>
-        <li>Pages and assignment descriptions: open the page and print it to PDF (Ctrl/Cmd + P → Save as PDF).</li>
+        <li>
+          Files: open <em>Files</em>, select files and choose <em>Download</em>.
+        </li>
+        <li>
+          Pages and assignment descriptions: open the page and print it to PDF (Ctrl/Cmd + P → Save
+          as PDF).
+        </li>
         <li>Rubrics: open the assignment, show the rubric and print to PDF.</li>
       </ul>
     </details>

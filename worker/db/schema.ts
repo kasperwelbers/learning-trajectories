@@ -35,16 +35,13 @@ export const users = sqliteTable("users", {
   createdAt: createdAt(),
 })
 
-export const otpCodes = sqliteTable(
-  "otp_codes",
-  {
-    email: text("email").primaryKey(),
-    codeHash: text("code_hash").notNull(),
-    expiresAt: integer("expires_at").notNull(),
-    attempts: integer("attempts").notNull().default(0),
-    createdAt: createdAt(),
-  },
-)
+export const otpCodes = sqliteTable("otp_codes", {
+  email: text("email").primaryKey(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: createdAt(),
+})
 
 export const sessions = sqliteTable(
   "sessions",
@@ -329,7 +326,9 @@ export const statements = sqliteTable(
     page: integer("page"),
     verification: text("verification").$type<QuoteVerification>().notNull(),
     assessedBy: text("assessed_by", { mode: "json" }).$type<string[]>().notNull(),
-    pointerId: integer("pointer_id").references(() => pointers.id, { onDelete: "cascade" }),
+    pointerId: integer("pointer_id").references(() => pointers.id, {
+      onDelete: "cascade",
+    }),
   },
   (t) => [uniqueIndex("statements_analysis_ordinal_idx").on(t.analysisId, t.ordinal)],
 )
@@ -380,7 +379,9 @@ export const links = sqliteTable(
     tested: integer("tested", { mode: "boolean" }).notNull(),
     origin: text("origin").$type<LinkOrigin>().notNull(),
     sources: text("sources", { mode: "json" }).$type<DocumentKind[]>().notNull(),
-    pointerId: integer("pointer_id").references(() => pointers.id, { onDelete: "cascade" }),
+    pointerId: integer("pointer_id").references(() => pointers.id, {
+      onDelete: "cascade",
+    }),
   },
   (t) => [
     uniqueIndex("links_analysis_ordinal_idx").on(t.analysisId, t.ordinal),

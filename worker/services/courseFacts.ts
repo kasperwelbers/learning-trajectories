@@ -60,9 +60,15 @@ export async function courseFacts(
   const analysisIds = items.flatMap((i) => (i.effective ? [i.effective.id] : []))
   const rows = await inChunks(analysisIds, (chunk) =>
     db
-      .select({ analysisId: analysisFields.analysisId, key: analysisFields.key, value: analysisFields.value })
+      .select({
+        analysisId: analysisFields.analysisId,
+        key: analysisFields.key,
+        value: analysisFields.value,
+      })
       .from(analysisFields)
-      .where(and(inArray(analysisFields.analysisId, chunk), inArray(analysisFields.key, [...FACT_KEYS]))),
+      .where(
+        and(inArray(analysisFields.analysisId, chunk), inArray(analysisFields.key, [...FACT_KEYS])),
+      ),
   )
   const values = new Map(rows.map((r) => [`${r.analysisId}|${r.key}`, r.value]))
   return items.map(({ course, effective }) => {

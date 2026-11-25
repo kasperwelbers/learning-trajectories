@@ -16,6 +16,7 @@ import { requireAdmin, requireTrajectoryEditor } from "../access"
 import type { ProgrammeEnv } from "../context"
 import type { Db } from "../db/client"
 import { assertVersionedUpdate, isUniqueViolation } from "../db/helpers"
+import { nextTrajectoryColor } from "@shared/palette"
 import { relinkLtos } from "../services/analysisRunner"
 import { ltos, trajectories } from "../db/schema"
 import { HttpError, found } from "../errors"
@@ -27,7 +28,7 @@ export const structureRoutes = new Hono<ProgrammeEnv>()
 type LtoRow = typeof ltos.$inferSelect
 type TrajectoryRow = typeof trajectories.$inferSelect
 
-export function toLtoDto(row: LtoRow): LtoDto {
+function toLtoDto(row: LtoRow): LtoDto {
   return {
     id: row.id,
     trajectoryId: row.trajectoryId,
@@ -52,7 +53,7 @@ function toTrajectoryDto(row: TrajectoryRow, ltoRows: LtoRow[]): TrajectoryDto {
   }
 }
 
-export async function loadStructure(db: Db, programmeId: string): Promise<StructureResponse> {
+async function loadStructure(db: Db, programmeId: string): Promise<StructureResponse> {
   const [trajectoryRows, ltoRows] = await Promise.all([
     db
       .select()
@@ -65,7 +66,9 @@ export async function loadStructure(db: Db, programmeId: string): Promise<Struct
       .where(eq(ltos.programmeId, programmeId))
       .orderBy(asc(ltos.position), asc(ltos.id)),
   ])
-  return { trajectories: trajectoryRows.map((t) => toTrajectoryDto(t, ltoRows)) }
+  return {
+    trajectories: trajectoryRows.map((t) => toTrajectoryDto(t, ltoRows)),
+  }
 }
 
 structureRoutes.get("/structure", async (c) => {
@@ -85,7 +88,8 @@ async function getTrajectory(db: Db, programmeId: string, id: number): Promise<T
   )
 }
 
-const duplicateName = () => new HttpError(409, "A trajectory with this name already exists", "conflict")
+const duplicateName = () =>
+  new HttpError(409, "A trajectory with this name already exists", "conflict")
 const duplicateCode = () => new HttpError(409, "An LTO with this code already exists", "conflict")
 
 structureRoutes.post("/trajectories", validate("json", createTrajectoryBody), async (c) => {
@@ -93,15 +97,17 @@ structureRoutes.post("/trajectories", validate("json", createTrajectoryBody), as
   const db = c.get("db")
   const programmeId = c.get("programmeId")
   const body = c.req.valid("json")
-  const last = await db
-    .select({ value: max(trajectories.position) })
+  const existing = await db
+    .select({ position: trajectories.position, color: trajectories.color })
     .from(trajectories)
     .where(eq(trajectories.programmeId, programmeId))
-    .get()
+  const position = Math.max(-1, ...existing.map((t) => t.position)) + 1
+  // An empty colour means "pick one": take the next unused palette colour.
+  const color = body.color || nextTrajectoryColor(existing.map((t) => t.color))
   try {
     const row = await db
       .insert(trajectories)
-      .values({ programmeId, name: body.name, color: body.color ?? "", position: (last?.value ?? -1) + 1 })
+      .values({ programmeId, name: body.name, color, position })
       .returning({ id: trajectories.id })
       .get()
     notify(c, "structure")
@@ -131,7 +137,9 @@ structureRoutes.patch("/trajectories/:tid", validate("json", updateTrajectoryBod
         ),
       )
       .run()
-    await assertVersionedUpdate(result, async () => Boolean(await getTrajectory(db, programmeId, id)))
+    await assertVersionedUpdate(result, async () =>
+      Boolean(await getTrajectory(db, programmeId, id)),
+    )
   } catch (error) {
     if (isUniqueViolation(error)) throw duplicateName()
     throw error
@@ -139,7 +147,12 @@ structureRoutes.patch("/trajectories/:tid", validate("json", updateTrajectoryBod
   if (affectsLinking) {
     // LTOs are linked in the context of their trajectory's narrative.
     const ltoIds = await db.select({ id: ltos.id }).from(ltos).where(eq(ltos.trajectoryId, id))
-    await relinkLtos(c.env, db, programmeId, ltoIds.map((l) => l.id))
+    await relinkLtos(
+      c.env,
+      db,
+      programmeId,
+      ltoIds.map((l) => l.id),
+    )
   }
   notify(c, "structure", "courses")
   return c.json({ ok: true })
@@ -183,7 +196,12 @@ structureRoutes.post("/trajectories/:tid/ltos", validate("json", createLtoBody),
   try {
     const row = await db
       .insert(ltos)
-      .values({ ...body, programmeId, trajectoryId, position: (last?.value ?? -1) + 1 })
+      .values({
+        ...body,
+        programmeId,
+        trajectoryId,
+        position: (last?.value ?? -1) + 1,
+      })
       .returning({ id: ltos.id })
       .get()
     await relinkLtos(c.env, db, programmeId, [row.id])
@@ -203,7 +221,10 @@ structureRoutes.post("/trajectories/:tid/ltos/order", validate("json", reorderBo
   await getTrajectory(db, c.get("programmeId"), trajectoryId)
   const { ids } = c.req.valid("json")
   const [first, ...rest] = ids.map((id, position) =>
-    db.update(ltos).set({ position }).where(and(eq(ltos.id, id), eq(ltos.trajectoryId, trajectoryId))),
+    db
+      .update(ltos)
+      .set({ position })
+      .where(and(eq(ltos.id, id), eq(ltos.trajectoryId, trajectoryId))),
   )
   if (first) await db.batch([first, ...rest])
   notify(c, "structure")
@@ -217,7 +238,10 @@ structureRoutes.post("/trajectories/order", validate("json", reorderBody), async
   const programmeId = c.get("programmeId")
   const { ids } = c.req.valid("json")
   const [first, ...rest] = ids.map((id, position) =>
-    db.update(trajectories).set({ position }).where(and(eq(trajectories.id, id), eq(trajectories.programmeId, programmeId))),
+    db
+      .update(trajectories)
+      .set({ position })
+      .where(and(eq(trajectories.id, id), eq(trajectories.programmeId, programmeId))),
   )
   if (first) await db.batch([first, ...rest])
   notify(c, "structure")
@@ -247,9 +271,13 @@ structureRoutes.patch("/ltos/:lid", validate("json", updateLtoBody), async (c) =
     throw error
   }
   // Changing what an LTO means makes its links stale: re-link it after a short pause for further edits.
-  const movedTrajectory = changes.trajectoryId !== undefined && changes.trajectoryId !== current.trajectoryId
+  const movedTrajectory =
+    changes.trajectoryId !== undefined && changes.trajectoryId !== current.trajectoryId
   const affectsLinking =
-    changes.title !== undefined || changes.narrative !== undefined || changes.code !== undefined || movedTrajectory
+    changes.title !== undefined ||
+    changes.narrative !== undefined ||
+    changes.code !== undefined ||
+    movedTrajectory
   if (affectsLinking) await relinkLtos(c.env, db, programmeId, [id])
   notify(c, "structure", "courses")
   return c.json({ ok: true })
@@ -276,17 +304,31 @@ structureRoutes.post("/ltos/import", validate("json", importLtosBody), async (c)
   const existingLtos = new Map(
     structure.trajectories.flatMap((t) => t.ltos).map((l) => [l.code, l]),
   )
-  const result: ImportLtosResponse = { trajectoriesCreated: 0, ltosCreated: 0, ltosUpdated: 0 }
+  const result: ImportLtosResponse = {
+    trajectoriesCreated: 0,
+    ltosCreated: 0,
+    ltosUpdated: 0,
+  }
   const touched: number[] = []
   let trajectoryPosition = structure.trajectories.length
+  const usedColors: string[] = []
   const ltoPositions = new Map(structure.trajectories.map((t) => [t.id, t.ltos.length]))
 
   for (const row of rows) {
     let trajectoryId = trajectoryIds.get(row.trajectory)
     if (trajectoryId === undefined) {
+      const color = nextTrajectoryColor(
+        structure.trajectories.map((t) => t.color).concat(usedColors),
+      )
+      usedColors.push(color)
       const created = await db
         .insert(trajectories)
-        .values({ programmeId, name: row.trajectory, position: trajectoryPosition++ })
+        .values({
+          programmeId,
+          name: row.trajectory,
+          color,
+          position: trajectoryPosition++,
+        })
         .returning({ id: trajectories.id })
         .get()
       trajectoryId = created.id
@@ -297,7 +339,11 @@ structureRoutes.post("/ltos/import", validate("json", importLtosBody), async (c)
     if (existing) {
       await db
         .update(ltos)
-        .set({ title: row.title, trajectoryId, version: sql`${ltos.version} + 1` })
+        .set({
+          title: row.title,
+          trajectoryId,
+          version: sql`${ltos.version} + 1`,
+        })
         .where(eq(ltos.id, existing.id))
       touched.push(existing.id)
       result.ltosUpdated++
@@ -306,7 +352,13 @@ structureRoutes.post("/ltos/import", validate("json", importLtosBody), async (c)
       ltoPositions.set(trajectoryId, position + 1)
       const created = await db
         .insert(ltos)
-        .values({ programmeId, trajectoryId, code: row.code, title: row.title, position })
+        .values({
+          programmeId,
+          trajectoryId,
+          code: row.code,
+          title: row.title,
+          position,
+        })
         .returning()
         .get()
       existingLtos.set(row.code, toLtoDto(created))

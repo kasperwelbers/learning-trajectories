@@ -40,7 +40,9 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
-    typeof search.redirect === "string" && search.redirect.startsWith("/") ? { redirect: search.redirect } : {},
+    typeof search.redirect === "string" && search.redirect.startsWith("/")
+      ? { redirect: search.redirect }
+      : {},
   component: LoginPage,
 })
 
@@ -55,7 +57,11 @@ export const programmeRoute = createRoute({
   component: ProgrammeLayout,
 })
 
-const overviewRoute = createRoute({ getParentRoute: () => programmeRoute, path: "/", component: OverviewPage })
+const overviewRoute = createRoute({
+  getParentRoute: () => programmeRoute,
+  path: "/",
+  component: OverviewPage,
+})
 
 export const trajectoryRoute = createRoute({
   getParentRoute: () => programmeRoute,
@@ -69,7 +75,11 @@ export const ltoRoute = createRoute({
   component: LtoPage,
 })
 
-const coursesRoute = createRoute({ getParentRoute: () => programmeRoute, path: "courses", component: CoursesPage })
+const coursesRoute = createRoute({
+  getParentRoute: () => programmeRoute,
+  path: "courses",
+  component: CoursesPage,
+})
 
 export const courseRoute = createRoute({
   getParentRoute: () => programmeRoute,
@@ -81,15 +91,31 @@ export const courseRoute = createRoute({
   component: CoursePage,
 })
 
-const journeyRoute = createRoute({ getParentRoute: () => programmeRoute, path: "views/journey", component: JourneyView })
-const heatmapRoute = createRoute({ getParentRoute: () => programmeRoute, path: "views/heatmap", component: HeatmapView })
-const matrixRoute = createRoute({ getParentRoute: () => programmeRoute, path: "views/matrix", component: MatrixView })
+const journeyRoute = createRoute({
+  getParentRoute: () => programmeRoute,
+  path: "views/journey",
+  component: JourneyView,
+})
+const heatmapRoute = createRoute({
+  getParentRoute: () => programmeRoute,
+  path: "views/heatmap",
+  component: HeatmapView,
+})
+const matrixRoute = createRoute({
+  getParentRoute: () => programmeRoute,
+  path: "views/matrix",
+  component: MatrixView,
+})
 const metadataRoute = createRoute({
   getParentRoute: () => programmeRoute,
   path: "views/metadata",
   component: MetadataView,
 })
-const reportRoute = createRoute({ getParentRoute: () => programmeRoute, path: "report", component: ReportView })
+const reportRoute = createRoute({
+  getParentRoute: () => programmeRoute,
+  path: "report",
+  component: ReportView,
+})
 
 export const settingsRoute = createRoute({
   getParentRoute: () => programmeRoute,

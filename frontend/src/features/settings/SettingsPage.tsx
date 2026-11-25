@@ -12,7 +12,15 @@ import { MembersSettings } from "./MembersSettings"
 import { SharingSettings } from "./SharingSettings"
 import { TrajectorySettings } from "./TrajectorySettings"
 
-export const settingsTabs = ["general", "trajectories", "members", "sharing", "fields", "frameworks", "import"] as const
+export const settingsTabs = [
+  "general",
+  "trajectories",
+  "members",
+  "sharing",
+  "fields",
+  "frameworks",
+  "import",
+] as const
 export type SettingsTab = (typeof settingsTabs)[number]
 
 const TAB_LABELS: Record<SettingsTab, string> = {
@@ -63,7 +71,15 @@ export function SettingsPage() {
 }
 
 /** Consistent heading for a settings section. */
-export function SettingsSection({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
+export function SettingsSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <section className="space-y-4">
       <div>

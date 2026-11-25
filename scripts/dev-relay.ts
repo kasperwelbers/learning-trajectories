@@ -8,7 +8,13 @@
 import { createServer } from "node:http"
 
 const PORT = Number(process.env.RELAY_PORT ?? 8790)
-const DROP_HEADERS = new Set(["host", "connection", "content-length", "x-relay-url", "accept-encoding"])
+const DROP_HEADERS = new Set([
+  "host",
+  "connection",
+  "content-length",
+  "x-relay-url",
+  "accept-encoding",
+])
 
 createServer((req, res) => {
   const target = req.headers["x-relay-url"]
@@ -24,7 +30,11 @@ createServer((req, res) => {
       if (!DROP_HEADERS.has(key) && typeof value === "string") headers.set(key, value)
     }
     const method = req.method ?? "GET"
-    fetch(target, { method, headers, body: method === "GET" || method === "HEAD" ? null : Buffer.concat(chunks) })
+    fetch(target, {
+      method,
+      headers,
+      body: method === "GET" || method === "HEAD" ? null : Buffer.concat(chunks),
+    })
       .then(async (response) => {
         const body = Buffer.from(await response.arrayBuffer())
         const type = response.headers.get("content-type")

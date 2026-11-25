@@ -1,6 +1,11 @@
 import { and, eq } from "drizzle-orm"
 import { Hono } from "hono"
-import { createShareLinkBody, memberChangeBody, type MemberDto, type ShareLinkDto } from "@shared/api"
+import {
+  createShareLinkBody,
+  memberChangeBody,
+  type MemberDto,
+  type ShareLinkDto,
+} from "@shared/api"
 import { requireAdmin, scopeIdOf, toAssignment } from "../access"
 import { normaliseEmail } from "../auth/otp"
 import { randomToken } from "../auth/crypto"
@@ -30,7 +35,11 @@ memberRoutes.get("/members", async (c) => {
     .orderBy(users.email)
   const members = new Map<string, MemberDto>()
   for (const row of rows) {
-    const member = members.get(row.userId) ?? { userId: row.userId, email: row.email, assignments: [] }
+    const member = members.get(row.userId) ?? {
+      userId: row.userId,
+      email: row.email,
+      assignments: [],
+    }
     member.assignments.push(toAssignment(row))
     members.set(row.userId, member)
   }
@@ -46,7 +55,12 @@ memberRoutes.post("/members", validate("json", memberChangeBody), async (c) => {
   const userId = await findOrCreateUser(db, normaliseEmail(email))
   await db
     .insert(programmeRoles)
-    .values({ programmeId, userId, role: assignment.role, scopeId: scopeIdOf(assignment) })
+    .values({
+      programmeId,
+      userId,
+      role: assignment.role,
+      scopeId: scopeIdOf(assignment),
+    })
     .onConflictDoNothing()
   notify(c, "members")
   return c.json({ ok: true })
@@ -57,7 +71,11 @@ memberRoutes.post("/members/remove", validate("json", memberChangeBody), async (
   const db = c.get("db")
   const programmeId = c.get("programmeId")
   const { email, assignment } = c.req.valid("json")
-  const user = await db.select({ id: users.id }).from(users).where(eq(users.email, normaliseEmail(email))).get()
+  const user = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, normaliseEmail(email)))
+    .get()
   if (!user) throw notFound("No such member")
   if (assignment.role === "admin" && user.id === c.get("user")?.id) {
     throw invalid("You cannot remove your own admin role")
@@ -85,7 +103,12 @@ async function assertScopeExists(
     const row = await db
       .select({ id: trajectories.id })
       .from(trajectories)
-      .where(and(eq(trajectories.id, assignment.trajectoryId), eq(trajectories.programmeId, programmeId)))
+      .where(
+        and(
+          eq(trajectories.id, assignment.trajectoryId),
+          eq(trajectories.programmeId, programmeId),
+        ),
+      )
       .get()
     if (!row) throw notFound("Trajectory not found")
   }
@@ -120,12 +143,15 @@ memberRoutes.get("/share-links", async (c) => {
 memberRoutes.post("/share-links", validate("json", createShareLinkBody), async (c) => {
   requireAdmin(c)
   const token = randomToken(18)
-  await c.get("db").insert(shareLinks).values({
-    token,
-    programmeId: c.get("programmeId"),
-    label: c.req.valid("json").label,
-    createdBy: c.get("user")?.email ?? null,
-  })
+  await c
+    .get("db")
+    .insert(shareLinks)
+    .values({
+      token,
+      programmeId: c.get("programmeId"),
+      label: c.req.valid("json").label,
+      createdBy: c.get("user")?.email ?? null,
+    })
   notify(c, "shareLinks")
   return c.json({ token }, 201)
 })
@@ -135,7 +161,12 @@ memberRoutes.delete("/share-links/:token", async (c) => {
   await c
     .get("db")
     .delete(shareLinks)
-    .where(and(eq(shareLinks.token, c.req.param("token")), eq(shareLinks.programmeId, c.get("programmeId"))))
+    .where(
+      and(
+        eq(shareLinks.token, c.req.param("token")),
+        eq(shareLinks.programmeId, c.get("programmeId")),
+      ),
+    )
   notify(c, "shareLinks")
   return c.json({ ok: true })
 })

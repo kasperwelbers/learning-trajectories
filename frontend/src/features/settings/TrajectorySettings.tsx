@@ -10,7 +10,7 @@ import { Loading, QueryError } from "@/components/layout/ErrorView"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useProgramme } from "@/hooks/useProgramme"
-import { nextTrajectoryColor, TRAJECTORY_COLORS } from "@/lib/palette"
+import { nextTrajectoryColor, TRAJECTORY_COLORS } from "@shared/palette"
 import { SettingsSection } from "./SettingsPage"
 
 export function TrajectorySettings() {
@@ -20,12 +20,20 @@ export function TrajectorySettings() {
   const invalidate = () => [keys.structure(programme.id)]
 
   const create = useApiMutation<{ name: string; color: string }, { id: number }>({
-    request: (body) => ({ method: "POST", path: `/api/p/${programme.id}/trajectories`, body }),
+    request: (body) => ({
+      method: "POST",
+      path: `/api/p/${programme.id}/trajectories`,
+      body,
+    }),
     invalidate,
     success: "Trajectory added",
   })
   const order = useApiMutation<number[]>({
-    request: (ids) => ({ method: "POST", path: `/api/p/${programme.id}/trajectories/order`, body: { ids } }),
+    request: (ids) => ({
+      method: "POST",
+      path: `/api/p/${programme.id}/trajectories/order`,
+      body: { ids },
+    }),
     invalidate,
   })
   const recolor = useApiMutation<{ trajectory: TrajectoryDto; color: string }>({
@@ -37,7 +45,10 @@ export function TrajectorySettings() {
     invalidate,
   })
   const remove = useApiMutation<TrajectoryDto>({
-    request: (t) => ({ method: "DELETE", path: `/api/p/${programme.id}/trajectories/${t.id}` }),
+    request: (t) => ({
+      method: "DELETE",
+      path: `/api/p/${programme.id}/trajectories/${t.id}`,
+    }),
     invalidate: () => [keys.structure(programme.id), ["p", programme.id, "coverage"]],
     success: "Trajectory deleted",
   })
@@ -57,7 +68,10 @@ export function TrajectorySettings() {
   }
   const submit = (event: SyntheticEvent) => {
     event.preventDefault()
-    create.mutate({ name, color: nextTrajectoryColor(list.map((t) => t.color)) }, { onSuccess: () => setName("") })
+    create.mutate(
+      { name, color: nextTrajectoryColor(list.map((t) => t.color)) },
+      { onSuccess: () => setName("") },
+    )
   }
 
   return (
@@ -90,10 +104,22 @@ export function TrajectorySettings() {
               {t.name}
             </Link>
             <span className="text-xs text-muted-foreground">{t.ltos.length} LTOs</span>
-            <Button size="icon-xs" variant="ghost" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              aria-label="Move up"
+              disabled={i === 0}
+              onClick={() => move(i, -1)}
+            >
               <ArrowUp />
             </Button>
-            <Button size="icon-xs" variant="ghost" aria-label="Move down" disabled={i === list.length - 1} onClick={() => move(i, 1)}>
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              aria-label="Move down"
+              disabled={i === list.length - 1}
+              onClick={() => move(i, 1)}
+            >
               <ArrowDown />
             </Button>
             <ConfirmButton
@@ -101,16 +127,30 @@ export function TrajectorySettings() {
               description="All its LTOs, narratives, justifications and links to courses are deleted. This cannot be undone."
               onConfirm={() => remove.mutate(t)}
             >
-              <Button size="icon-xs" variant="ghost" aria-label="Delete" className="text-destructive">
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                aria-label="Delete"
+                className="text-destructive"
+              >
                 <Trash2 />
               </Button>
             </ConfirmButton>
           </li>
         ))}
-        {list.length === 0 && <li className="px-4 py-6 text-center text-sm text-muted-foreground">No trajectories yet.</li>}
+        {list.length === 0 && (
+          <li className="px-4 py-6 text-center text-sm text-muted-foreground">
+            No trajectories yet.
+          </li>
+        )}
       </ul>
       <form onSubmit={submit} className="flex max-w-md gap-2">
-        <Input required placeholder="New trajectory name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          required
+          placeholder="New trajectory name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <Button type="submit" disabled={create.isPending}>
           <Plus /> Add
         </Button>

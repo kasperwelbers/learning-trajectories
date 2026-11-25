@@ -23,7 +23,11 @@ export interface ExtractedDocument {
 }
 
 /** The page the quote is actually found on beats the page the model reported. */
-function resolvePage(matcher: DocumentMatcher, quote: string, reported: number | null): number | null {
+function resolvePage(
+  matcher: DocumentMatcher,
+  quote: string,
+  reported: number | null,
+): number | null {
   return matcher.pageOf(quote) ?? reported
 }
 
@@ -103,7 +107,12 @@ export function assembleExtractions(
     }
     for (const r of doc.extraction.rubrics) {
       if (r.criteria.length === 0) continue
-      rubrics.push({ documentId: doc.documentId, assessment: r.assessment, criteria: r.criteria, page: r.page })
+      rubrics.push({
+        documentId: doc.documentId,
+        assessment: r.assessment,
+        criteria: r.criteria,
+        page: r.page,
+      })
     }
   }
   return { fields: resultFields, statements, assessments, rubrics }
@@ -168,7 +177,7 @@ export function buildLinks(
   })
 }
 
-export interface PointerInput {
+interface PointerInput {
   id: number
   ltoId: number
   documentId: number

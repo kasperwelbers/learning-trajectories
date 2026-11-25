@@ -1,10 +1,17 @@
 import { BookOpenText, CircleCheck, FileText, Globe, Paperclip, TriangleAlert } from "lucide-react"
 import { BLOOM, levelInfo, type BloomRef } from "@shared/bloom"
-import { DOCUMENT_KIND_LABELS, STATEMENT_KIND_LABELS, type DocumentKind, type QuoteVerification, type StatementKind } from "@shared/evidence"
+import {
+  DOCUMENT_KIND_LABELS,
+  STATEMENT_KIND_LABELS,
+  type DocumentKind,
+  type QuoteVerification,
+  type StatementKind,
+} from "@shared/evidence"
 import { cn } from "@/lib/utils"
 import { DOMAIN_COLOR } from "@/components/bloom/colors"
 
-const pill = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-medium whitespace-nowrap"
+const pill =
+  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.7rem] font-medium whitespace-nowrap"
 
 export function LevelBadge({ refValue, tested }: { refValue: BloomRef; tested?: boolean }) {
   const color = DOMAIN_COLOR[refValue.domain]
@@ -13,7 +20,7 @@ export function LevelBadge({ refValue, tested }: { refValue: BloomRef; tested?: 
       className={cn(pill, "border")}
       style={{
         borderColor: color,
-        background: tested ? color : `color-mix(in oklch, ${color} 14%, transparent)`,
+        background: tested ? color : `color-mix(in oklab, ${color} 14%, transparent)`,
         color: tested ? "white" : "var(--foreground)",
       }}
       title={`${BLOOM[refValue.domain].label} domain${tested === undefined ? "" : tested ? " · tested" : " · taught, not tested"}`}
@@ -39,7 +46,18 @@ export function SourceBadge({ kind }: { kind: DocumentKind }) {
 }
 
 export function StatementKindBadge({ kind }: { kind: StatementKind }) {
-  return <span className={cn(pill, kind === "assessment" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground")}>{STATEMENT_KIND_LABELS[kind]}</span>
+  return (
+    <span
+      className={cn(
+        pill,
+        kind === "assessment"
+          ? "bg-accent text-accent-foreground"
+          : "bg-muted text-muted-foreground",
+      )}
+    >
+      {STATEMENT_KIND_LABELS[kind]}
+    </span>
+  )
 }
 
 export function VerificationIcon({ verification }: { verification: QuoteVerification }) {

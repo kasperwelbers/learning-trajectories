@@ -16,8 +16,7 @@ export type Topic =
   | `course:${number}`
 
 export type HubMessage =
-  | { type: "invalidate"; topics: Topic[] }
-  | { type: "presence"; viewers: number }
+  { type: "invalidate"; topics: Topic[] } | { type: "presence"; viewers: number }
 
 export function courseTopic(courseId: number): Topic {
   return `course:${courseId}`
@@ -53,7 +52,7 @@ const SIMPLE_TOPICS: ReadonlySet<string> = new Set([
   "coverage",
 ])
 
-export function isTopic(value: unknown): value is Topic {
+function isTopic(value: unknown): value is Topic {
   if (typeof value !== "string") return false
   return SIMPLE_TOPICS.has(value) || /^course:\d+$/.test(value)
 }

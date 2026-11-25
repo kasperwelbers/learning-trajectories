@@ -55,11 +55,17 @@ export function OverviewPage() {
           <Stat label="Courses analysed" value={`${analysed} / ${courseList.length}`} />
           {withoutDescription > 0 && (
             <Notice icon={<FileWarning className="size-4" />}>
-              {withoutDescription} course{withoutDescription === 1 ? " has" : "s have"} no manual or study guide for {year}.
+              {withoutDescription} course
+              {withoutDescription === 1 ? " has" : "s have"} no manual or study guide for {year}.
             </Notice>
           )}
           {stale > 0 && <StaleNotice count={stale} admin={admin} />}
-          <Link to="/p/$programmeId/courses" params={{ programmeId: programme.id }} search={(s) => s} className="flex items-center gap-1 pt-1 text-sm text-primary hover:underline">
+          <Link
+            to="/p/$programmeId/courses"
+            params={{ programmeId: programme.id }}
+            search={(s) => s}
+            className="flex items-center gap-1 pt-1 text-sm text-primary hover:underline"
+          >
             All courses <ArrowRight className="size-3.5" />
           </Link>
         </aside>
@@ -78,7 +84,12 @@ export function OverviewPage() {
             {admin && (
               <>
                 {" "}
-                <Link to="/p/$programmeId/settings" params={{ programmeId: programme.id }} search={{ tab: "import" }} className="text-primary hover:underline">
+                <Link
+                  to="/p/$programmeId/settings"
+                  params={{ programmeId: programme.id }}
+                  search={{ tab: "import" }}
+                  className="text-primary hover:underline"
+                >
                   Import LTOs
                 </Link>{" "}
                 or add trajectories in the settings.
@@ -96,7 +107,13 @@ export function OverviewPage() {
   )
 }
 
-function TrajectoryCard({ trajectory, coverage }: { trajectory: TrajectoryDto; coverage: CoverageData | undefined }) {
+function TrajectoryCard({
+  trajectory,
+  coverage,
+}: {
+  trajectory: TrajectoryDto
+  coverage: CoverageData | undefined
+}) {
   const { programme } = useProgramme()
   return (
     <article className="overflow-hidden rounded-xl border bg-card">
@@ -104,7 +121,10 @@ function TrajectoryCard({ trajectory, coverage }: { trajectory: TrajectoryDto; c
       <div className="space-y-4 p-5">
         <Link
           to="/p/$programmeId/trajectories/$trajectoryId"
-          params={{ programmeId: programme.id, trajectoryId: String(trajectory.id) }}
+          params={{
+            programmeId: programme.id,
+            trajectoryId: String(trajectory.id),
+          }}
           search={(s) => s}
           className="group flex items-start justify-between gap-3"
         >
@@ -120,13 +140,21 @@ function TrajectoryCard({ trajectory, coverage }: { trajectory: TrajectoryDto; c
                 search={(s) => s}
                 className="flex items-center gap-3 py-2.5 hover:bg-muted/40"
               >
-                <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{lto.code}</span>
+                <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">
+                  {lto.code}
+                </span>
                 <span className="line-clamp-2 flex-1 text-sm">{lto.title}</span>
-                <FlowerRow coverage={coverage?.flowers.get(lto.id)} size={22} className="shrink-0" />
+                <FlowerRow
+                  coverage={coverage?.flowers.get(lto.id)}
+                  size={22}
+                  className="shrink-0"
+                />
               </Link>
             </li>
           ))}
-          {trajectory.ltos.length === 0 && <li className="py-3 text-sm text-muted-foreground">No LTOs yet.</li>}
+          {trajectory.ltos.length === 0 && (
+            <li className="py-3 text-sm text-muted-foreground">No LTOs yet.</li>
+          )}
         </ul>
       </div>
     </article>
@@ -166,7 +194,13 @@ function StaleNotice({ count, admin }: { count: number; admin: boolean }) {
         {count} course{count === 1 ? " is" : "s are"} out of date (documents or LTOs changed).
       </span>
       {admin && (
-        <Button size="xs" variant="outline" className="mt-2" disabled={relink.isPending} onClick={() => relink.mutate(undefined)}>
+        <Button
+          size="xs"
+          variant="outline"
+          className="mt-2"
+          disabled={relink.isPending}
+          onClick={() => relink.mutate(undefined)}
+        >
           <RefreshCw /> Update now
         </Button>
       )}

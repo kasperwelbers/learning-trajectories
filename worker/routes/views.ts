@@ -28,14 +28,20 @@ viewRoutes.get("/coverage", validate("query", yearQuerySchema), async (c) => {
   const programmeId = c.get("programmeId")
   const { year } = c.req.valid("query")
   const items = await coursesWithAnalyses(db, programmeId, year)
-  const courseByAnalysis = new Map(items.flatMap((i) => (i.effective ? [[i.effective.id, i.course.id] as const] : [])))
+  const courseByAnalysis = new Map(
+    items.flatMap((i) => (i.effective ? [[i.effective.id, i.course.id] as const] : [])),
+  )
   const [facts, linkRows, disputeRows] = await Promise.all([
     courseFacts(db, items),
     inChunks([...courseByAnalysis.keys()], (chunk) =>
       db.select().from(links).where(inArray(links.analysisId, chunk)),
     ),
     db
-      .select({ courseId: disputes.courseId, ltoId: disputes.ltoId, year: disputes.year })
+      .select({
+        courseId: disputes.courseId,
+        ltoId: disputes.ltoId,
+        year: disputes.year,
+      })
       .from(disputes)
       .where(and(eq(disputes.programmeId, programmeId), eq(disputes.status, "open"))),
   ])
@@ -63,7 +69,12 @@ viewRoutes.get("/coverage", validate("query", yearQuerySchema), async (c) => {
         .map((d) => `${d.courseId}|${d.ltoId}`),
     ),
   ]
-  return c.json<CoverageResponse>({ year, courses: facts, links: coverage, disputedPairs })
+  return c.json<CoverageResponse>({
+    year,
+    courses: facts,
+    links: coverage,
+    disputedPairs,
+  })
 })
 
 /** Everything behind one LTO's flowers: per course and level the quotes and justifications. */
@@ -73,7 +84,11 @@ viewRoutes.get("/ltos/:lid/evidence", validate("query", yearQuerySchema), async 
   const { year } = c.req.valid("query")
   const ltoId = intParam(c.req.param("lid"))
   found(
-    await db.select({ id: ltos.id }).from(ltos).where(and(eq(ltos.id, ltoId), eq(ltos.programmeId, programmeId))).get(),
+    await db
+      .select({ id: ltos.id })
+      .from(ltos)
+      .where(and(eq(ltos.id, ltoId), eq(ltos.programmeId, programmeId)))
+      .get(),
     "LTO not found",
   )
   const items = await coursesWithAnalyses(db, programmeId, year)
@@ -81,9 +96,15 @@ viewRoutes.get("/ltos/:lid/evidence", validate("query", yearQuerySchema), async 
   const [facts, linkRows, disputeRows] = await Promise.all([
     courseFacts(db, items),
     inChunks(effectiveIds, (chunk) =>
-      db.select().from(links).where(and(eq(links.ltoId, ltoId), inArray(links.analysisId, chunk))),
+      db
+        .select()
+        .from(links)
+        .where(and(eq(links.ltoId, ltoId), inArray(links.analysisId, chunk))),
     ),
-    db.select().from(disputes).where(and(eq(disputes.programmeId, programmeId), eq(disputes.ltoId, ltoId))),
+    db
+      .select()
+      .from(disputes)
+      .where(and(eq(disputes.programmeId, programmeId), eq(disputes.ltoId, ltoId))),
   ])
   const linkDtos = await loadLinkDtos(db, linkRows)
   const analysisOfLink = new Map(linkRows.map((r) => [r.id, r.analysisId]))
@@ -92,7 +113,11 @@ viewRoutes.get("/ltos/:lid/evidence", validate("query", yearQuerySchema), async 
     db
       .select({
         statement: statements,
-        document: { id: documents.id, kind: documents.kind, filename: documents.filename },
+        document: {
+          id: documents.id,
+          kind: documents.kind,
+          filename: documents.filename,
+        },
       })
       .from(statements)
       .innerJoin(documents, eq(documents.id, statements.documentId))
@@ -144,14 +169,23 @@ viewRoutes.get("/ltos/:lid/evidence", validate("query", yearQuerySchema), async 
         existing.links.push(evidence)
         existing.tested ||= link.tested
       } else {
-        levels.set(key, { ...refOf(link), tested: link.tested, links: [evidence] })
+        levels.set(key, {
+          ...refOf(link),
+          tested: link.tested,
+          links: [evidence],
+        })
       }
     }
     const sorted = [...levels.values()].sort(
       (a, b) =>
-        BLOOM_DOMAINS.indexOf(a.domain) - BLOOM_DOMAINS.indexOf(b.domain) || levelIndex(a) - levelIndex(b),
+        BLOOM_DOMAINS.indexOf(a.domain) - BLOOM_DOMAINS.indexOf(b.domain) ||
+        levelIndex(a) - levelIndex(b),
     )
-    response.courses.push({ course: fact, levels: sorted, disputes: courseDisputes })
+    response.courses.push({
+      course: fact,
+      levels: sorted,
+      disputes: courseDisputes,
+    })
   })
   return c.json(response)
 })
@@ -175,8 +209,16 @@ viewRoutes.get("/metadata", validate("query", yearQuerySchema), async (c) => {
     if (!fact) return []
     const effective = item.effective
     if (!effective) return [{ course: fact, values: {} }]
-    const values = metadataValues(fields, fieldRows.filter((r) => r.analysisId === effective.id))
-    return [{ course: fact, values: Object.fromEntries(values.map((v) => [v.key, v])) }]
+    const values = metadataValues(
+      fields,
+      fieldRows.filter((r) => r.analysisId === effective.id),
+    )
+    return [
+      {
+        course: fact,
+        values: Object.fromEntries(values.map((v) => [v.key, v])),
+      },
+    ]
   })
   return c.json<MetadataTableResponse>({ year, fields, rows })
 })

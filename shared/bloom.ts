@@ -91,7 +91,13 @@ const AFFECTIVE_INFO: Record<(typeof AFFECTIVE)[number], LevelText> = {
   },
 }
 
-const PSYCHOMOTOR = ["imitation", "manipulation", "precision", "articulation", "naturalisation"] as const
+const PSYCHOMOTOR = [
+  "imitation",
+  "manipulation",
+  "precision",
+  "articulation",
+  "naturalisation",
+] as const
 
 const PSYCHOMOTOR_INFO: Record<(typeof PSYCHOMOTOR)[number], LevelText> = {
   imitation: {
@@ -192,8 +198,6 @@ export function levelIndex(ref: BloomRef): number {
   const levels: readonly string[] = LEVEL_KEYS[ref.domain]
   return levels.indexOf(ref.level)
 }
-
-export const bloomDomainSchema = z.enum(BLOOM_DOMAINS)
 
 export const bloomRefSchema = z.discriminatedUnion("domain", [
   z.object({ domain: z.literal("cognitive"), level: z.enum(COGNITIVE) }),

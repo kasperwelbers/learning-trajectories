@@ -21,7 +21,13 @@ export { studyGuideUrl } from "../pipeline/studyGuideText"
 export async function saveStudyGuide(
   env: Env,
   db: Db,
-  input: { programmeId: string; course: { id: number; code: string }; year: string; url: string; uploadedBy: string },
+  input: {
+    programmeId: string
+    course: { id: number; code: string }
+    year: string
+    url: string
+    uploadedBy: string
+  },
 ): Promise<boolean> {
   let text: string
   try {
@@ -36,13 +42,19 @@ export async function saveStudyGuide(
     .select()
     .from(documents)
     .where(
-      and(eq(documents.courseId, input.course.id), eq(documents.year, input.year), eq(documents.kind, "study_guide")),
+      and(
+        eq(documents.courseId, input.course.id),
+        eq(documents.year, input.year),
+        eq(documents.kind, "study_guide"),
+      ),
     )
   if (existing.some((d) => d.sha256 === sha256 && d.sourceUrl === input.url)) return false
 
   const filename = `${input.course.code} study guide ${input.year}.txt`
   const key = documentKey(input.programmeId, input.course.id, filename)
-  await env.FILES.put(key, bytes, { httpMetadata: { contentType: "text/plain; charset=utf-8" } })
+  await env.FILES.put(key, bytes, {
+    httpMetadata: { contentType: "text/plain; charset=utf-8" },
+  })
   await db.insert(documents).values({
     programmeId: input.programmeId,
     courseId: input.course.id,

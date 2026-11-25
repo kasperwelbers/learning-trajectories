@@ -25,7 +25,7 @@ import type { Staleness } from "./staleness"
 type LinkRow = typeof links.$inferSelect
 type StatementRow = typeof statements.$inferSelect
 
-export function toStatementDto(row: StatementRow): StatementDto {
+function toStatementDto(row: StatementRow): StatementDto {
   return {
     id: row.id,
     documentId: row.documentId,

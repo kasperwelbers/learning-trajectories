@@ -105,13 +105,21 @@ function chunk<T>(rows: readonly T[], columns: number): T[][] {
 
 type Batch = [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]
 
-function insertStatements(db: Db, analysisId: number, rows: readonly StoredStatement[]): BatchItem<"sqlite">[] {
+function insertStatements(
+  db: Db,
+  analysisId: number,
+  rows: readonly StoredStatement[],
+): BatchItem<"sqlite">[] {
   return chunk(rows, 12).map((part) =>
     db.insert(statements).values(part.map((s) => ({ ...s, analysisId }))),
   )
 }
 
-function insertLinks(db: Db, analysisId: number, rows: readonly StoredLink[]): BatchItem<"sqlite">[] {
+function insertLinks(
+  db: Db,
+  analysisId: number,
+  rows: readonly StoredLink[],
+): BatchItem<"sqlite">[] {
   const items: BatchItem<"sqlite">[] = chunk(rows, 12).map((part) =>
     db.insert(links).values(
       part.map((l) => ({
@@ -152,20 +160,34 @@ function insertLinks(db: Db, analysisId: number, rows: readonly StoredLink[]): B
   return items
 }
 
-export interface LinkRun {
+interface LinkRun {
   ltoId: number
   ltoHash: string
 }
 
-function upsertLinkRuns(db: Db, analysisId: number, runs: readonly LinkRun[]): BatchItem<"sqlite">[] {
+function upsertLinkRuns(
+  db: Db,
+  analysisId: number,
+  runs: readonly LinkRun[],
+): BatchItem<"sqlite">[] {
   const linkedAt = Date.now()
   return chunk(runs, 4).map((part) =>
     db
       .insert(linkRuns)
-      .values(part.map((r) => ({ analysisId, ltoId: r.ltoId, ltoHash: r.ltoHash, linkedAt })))
+      .values(
+        part.map((r) => ({
+          analysisId,
+          ltoId: r.ltoId,
+          ltoHash: r.ltoHash,
+          linkedAt,
+        })),
+      )
       .onConflictDoUpdate({
         target: [linkRuns.analysisId, linkRuns.ltoId],
-        set: { ltoHash: sql`excluded.lto_hash`, linkedAt: sql`excluded.linked_at` },
+        set: {
+          ltoHash: sql`excluded.lto_hash`,
+          linkedAt: sql`excluded.linked_at`,
+        },
       }),
   )
 }
@@ -175,7 +197,11 @@ export async function saveAnalysisResults(
   analysisId: number,
   results: AnalysisResults,
   meta: { runs: LinkRun[]; documentsHash: string; model: string },
-  pointerUpdates: { pointerId: number; status: "supported" | "not_supported" | "failed"; verdict: string }[],
+  pointerUpdates: {
+    pointerId: number
+    status: "supported" | "not_supported" | "failed"
+    verdict: string
+  }[],
 ): Promise<void> {
   const batch: Batch = [
     db.delete(analysisFields).where(eq(analysisFields.analysisId, analysisId)),
@@ -197,7 +223,10 @@ export async function saveAnalysisResults(
     ...insertLinks(db, analysisId, results.links),
     ...upsertLinkRuns(db, analysisId, meta.runs),
     ...pointerUpdates.map((p) =>
-      db.update(pointers).set({ status: p.status, verdict: p.verdict }).where(eq(pointers.id, p.pointerId)),
+      db
+        .update(pointers)
+        .set({ status: p.status, verdict: p.verdict })
+        .where(eq(pointers.id, p.pointerId)),
     ),
     db
       .update(analyses)
@@ -224,7 +253,9 @@ export async function saveLtoRelink(
   const items: BatchItem<"sqlite">[] = perAnalysis.flatMap(({ analysisId, links: rows }) => [
     db
       .delete(links)
-      .where(and(eq(links.analysisId, analysisId), eq(links.ltoId, run.ltoId), eq(links.origin, "ai"))),
+      .where(
+        and(eq(links.analysisId, analysisId), eq(links.ltoId, run.ltoId), eq(links.origin, "ai")),
+      ),
     ...insertLinks(db, analysisId, rows),
     ...upsertLinkRuns(db, analysisId, [run]),
   ])
@@ -243,7 +274,9 @@ export async function savePointerResult(
 ): Promise<void> {
   const batch: Batch = [
     db.delete(links).where(and(eq(links.analysisId, analysisId), eq(links.pointerId, pointerId))),
-    db.delete(statements).where(and(eq(statements.analysisId, analysisId), eq(statements.pointerId, pointerId))),
+    db
+      .delete(statements)
+      .where(and(eq(statements.analysisId, analysisId), eq(statements.pointerId, pointerId))),
     ...(statement ? insertStatements(db, analysisId, [statement]) : []),
     ...insertLinks(db, analysisId, pointerLinks),
     db.update(pointers).set(update).where(eq(pointers.id, pointerId)),

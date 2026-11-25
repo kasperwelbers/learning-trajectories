@@ -25,8 +25,12 @@ export function MatrixView() {
     return new Map([...grouped].map(([key, list]) => [key, flowerFromLinks(list)]))
   }, [coverage.data, studyGuideOnly])
 
-  const courses = useMemo(() => [...(coverage.data?.courses ?? [])].filter((c) => c.analysisYear).sort(compareCourses), [coverage.data])
-  const ltos = structure.data?.trajectories.flatMap((t) => t.ltos.map((lto) => ({ lto, trajectory: t }))) ?? []
+  const courses = useMemo(
+    () => [...(coverage.data?.courses ?? [])].filter((c) => c.analysisYear).sort(compareCourses),
+    [coverage.data],
+  )
+  const ltos =
+    structure.data?.trajectories.flatMap((t) => t.ltos.map((lto) => ({ lto, trajectory: t }))) ?? []
 
   return (
     <div className="space-y-6">
@@ -38,10 +42,14 @@ export function MatrixView() {
           Only evidence that is explicit in the study guide
         </FilterToggle>
       </ViewHeader>
-      {(structure.error ?? coverage.error) && <QueryError error={structure.error ?? coverage.error} />}
+      {(structure.error ?? coverage.error) && (
+        <QueryError error={structure.error ?? coverage.error} />
+      )}
       {(!structure.data || !coverage.data) && !structure.error && !coverage.error && <Loading />}
       {structure.data && coverage.data && courses.length === 0 && (
-        <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">No analysed courses yet.</p>
+        <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          No analysed courses yet.
+        </p>
       )}
       {structure.data && coverage.data && courses.length > 0 && (
         <div className="max-h-[80vh] overflow-auto rounded-xl border bg-card">
@@ -51,8 +59,19 @@ export function MatrixView() {
                 <th className="sticky left-0 z-20 bg-card" />
                 {structure.data.trajectories.map((t) =>
                   t.ltos.length ? (
-                    <th key={t.id} colSpan={t.ltos.length} className="border-b px-1 py-1.5 text-left font-medium">
-                      <span className="block truncate border-t-4 pt-1" style={{ borderColor: t.color || "var(--primary)", maxWidth: `${t.ltos.length * 3}rem` }} title={t.name}>
+                    <th
+                      key={t.id}
+                      colSpan={t.ltos.length}
+                      className="border-b px-1 py-1.5 text-left font-medium"
+                    >
+                      <span
+                        className="block truncate border-t-4 pt-1"
+                        style={{
+                          borderColor: t.color || "var(--primary)",
+                          maxWidth: `${t.ltos.length * 3}rem`,
+                        }}
+                        title={t.name}
+                      >
                         {t.name}
                       </span>
                     </th>
@@ -60,12 +79,20 @@ export function MatrixView() {
                 )}
               </tr>
               <tr>
-                <th className="sticky left-0 z-20 border-b bg-card px-3 py-2 text-left font-medium">Course</th>
+                <th className="sticky left-0 z-20 border-b bg-card px-3 py-2 text-left font-medium">
+                  Course
+                </th>
                 {ltos.map(({ lto }) => (
-                  <th key={lto.id} className="w-12 border-b px-1 py-2 font-mono font-normal text-muted-foreground">
+                  <th
+                    key={lto.id}
+                    className="w-12 border-b px-1 py-2 font-mono font-normal text-muted-foreground"
+                  >
                     <Link
                       to="/p/$programmeId/ltos/$ltoId"
-                      params={{ programmeId: programme.id, ltoId: String(lto.id) }}
+                      params={{
+                        programmeId: programme.id,
+                        ltoId: String(lto.id),
+                      }}
                       search={(s) => ({ year: s.year })}
                       className="hover:underline"
                       title={lto.title}
@@ -82,7 +109,10 @@ export function MatrixView() {
                   <th className="sticky left-0 z-10 max-w-72 border-b bg-card px-3 py-1.5 text-left font-normal">
                     <Link
                       to="/p/$programmeId/courses/$courseId"
-                      params={{ programmeId: programme.id, courseId: String(course.id) }}
+                      params={{
+                        programmeId: programme.id,
+                        courseId: String(course.id),
+                      }}
                       search={(s) => ({ year: s.year })}
                       className="block truncate hover:underline"
                       title={course.name}

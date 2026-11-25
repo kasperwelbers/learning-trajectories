@@ -32,7 +32,13 @@ interface MarkdownEditorProps {
 }
 
 /** A WYSIWYG editor that reads and writes markdown, with image upload (paste, drop or button). */
-export function MarkdownEditor({ initial, onChange, programmeId, placeholder, autoFocus }: MarkdownEditorProps) {
+export function MarkdownEditor({
+  initial,
+  onChange,
+  programmeId,
+  placeholder,
+  autoFocus,
+}: MarkdownEditorProps) {
   const fileInput = useRef<HTMLInputElement>(null)
   // Paste/drop handlers are created once with the editor; they reach the editor through this ref.
   const editorRef = useRef<Editor | null>(null)
@@ -44,7 +50,11 @@ export function MarkdownEditor({ initial, onChange, programmeId, placeholder, au
     const id = toast.loading("Uploading image…")
     try {
       const { url } = await apiUpload<UploadImageResponse>(`/api/p/${programmeId}/images`, form)
-      editor.chain().focus().setImage({ src: url, alt: file.name.replace(/\.[^.]+$/, "") }).run()
+      editor
+        .chain()
+        .focus()
+        .setImage({ src: url, alt: file.name.replace(/\.[^.]+$/, "") })
+        .run()
       toast.dismiss(id)
     } catch (error) {
       toast.error(errorMessage(error), { id })
@@ -53,7 +63,10 @@ export function MarkdownEditor({ initial, onChange, programmeId, placeholder, au
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] }, link: { openOnClick: false, autolink: true } }),
+      StarterKit.configure({
+        heading: { levels: [2, 3] },
+        link: { openOnClick: false, autolink: true },
+      }),
       Image,
       Markdown,
       Placeholder.configure({ placeholder: placeholder ?? "Write…" }),
@@ -64,7 +77,9 @@ export function MarkdownEditor({ initial, onChange, programmeId, placeholder, au
     editorProps: {
       attributes: { class: "prose-narrative min-h-40 px-4 py-3 outline-none" },
       handlePaste: (_view, event) => {
-        const file = [...(event.clipboardData?.files ?? [])].find((f) => f.type.startsWith("image/"))
+        const file = [...(event.clipboardData?.files ?? [])].find((f) =>
+          f.type.startsWith("image/"),
+        )
         if (!file || !editorRef.current) return false
         void upload(editorRef.current, file)
         return true
@@ -93,27 +108,55 @@ export function MarkdownEditor({ initial, onChange, programmeId, placeholder, au
   return (
     <div className="rounded-lg border bg-card focus-within:ring-[3px] focus-within:ring-ring/30">
       <div className="flex flex-wrap items-center gap-0.5 border-b px-1.5 py-1">
-        <ToolButton label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <ToolButton
+          label="Bold"
+          active={editor.isActive("bold")}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+        >
           <Bold />
         </ToolButton>
-        <ToolButton label="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <ToolButton
+          label="Italic"
+          active={editor.isActive("italic")}
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+        >
           <Italic />
         </ToolButton>
         <Divider />
-        <ToolButton label="Heading" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+        <ToolButton
+          label="Heading"
+          active={editor.isActive("heading", { level: 2 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        >
           <Heading2 />
         </ToolButton>
-        <ToolButton label="Subheading" active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+        <ToolButton
+          label="Subheading"
+          active={editor.isActive("heading", { level: 3 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        >
           <Heading3 />
         </ToolButton>
         <Divider />
-        <ToolButton label="Bullet list" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+        <ToolButton
+          label="Bullet list"
+          active={editor.isActive("bulletList")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+        >
           <List />
         </ToolButton>
-        <ToolButton label="Numbered list" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+        <ToolButton
+          label="Numbered list"
+          active={editor.isActive("orderedList")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        >
           <ListOrdered />
         </ToolButton>
-        <ToolButton label="Quote" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+        <ToolButton
+          label="Quote"
+          active={editor.isActive("blockquote")}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        >
           <Quote />
         </ToolButton>
         <ToolButton label="Link" active={editor.isActive("link")} onClick={setLink}>
@@ -125,10 +168,18 @@ export function MarkdownEditor({ initial, onChange, programmeId, placeholder, au
           </ToolButton>
         )}
         <span className="ml-auto flex gap-0.5">
-          <ToolButton label="Undo" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}>
+          <ToolButton
+            label="Undo"
+            disabled={!editor.can().undo()}
+            onClick={() => editor.chain().focus().undo().run()}
+          >
             <Undo2 />
           </ToolButton>
-          <ToolButton label="Redo" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}>
+          <ToolButton
+            label="Redo"
+            disabled={!editor.can().redo()}
+            onClick={() => editor.chain().focus().redo().run()}
+          >
             <Redo2 />
           </ToolButton>
         </span>

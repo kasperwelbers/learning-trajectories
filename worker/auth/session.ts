@@ -19,22 +19,36 @@ function cookieOptions<E extends HonoEnv>(c: Context<E>) {
   }
 }
 
-export async function createSession<E extends HonoEnv>(c: Context<E>, db: Db, userId: string): Promise<void> {
+export async function createSession<E extends HonoEnv>(
+  c: Context<E>,
+  db: Db,
+  userId: string,
+): Promise<void> {
   const token = randomToken()
   await db.insert(sessions).values({
     tokenHash: await sha256Hex(token),
     userId,
     expiresAt: Date.now() + SESSION_DAYS * DAY_MS,
   })
-  setCookie(c, SESSION_COOKIE, token, { ...cookieOptions(c), maxAge: SESSION_DAYS * 86400 })
+  setCookie(c, SESSION_COOKIE, token, {
+    ...cookieOptions(c),
+    maxAge: SESSION_DAYS * 86400,
+  })
 }
 
-export async function readSession<E extends HonoEnv>(c: Context<E>, db: Db): Promise<SessionUser | null> {
+export async function readSession<E extends HonoEnv>(
+  c: Context<E>,
+  db: Db,
+): Promise<SessionUser | null> {
   const token = getCookie(c, SESSION_COOKIE)
   if (!token) return null
   const tokenHash = await sha256Hex(token)
   const row = await db
-    .select({ id: users.id, email: users.email, isServerAdmin: users.isServerAdmin })
+    .select({
+      id: users.id,
+      email: users.email,
+      isServerAdmin: users.isServerAdmin,
+    })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, Date.now())))

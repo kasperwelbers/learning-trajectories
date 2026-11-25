@@ -11,7 +11,7 @@ export function courseYear(course: Pick<CourseFactsDto, "programmeYear" | "level
 export function compareCourses(a: CourseFactsDto, b: CourseFactsDto): number {
   return (
     (courseYear(a) ?? 99) - (courseYear(b) ?? 99) ||
-    (Math.min(...a.periods, 99) - Math.min(...b.periods, 99)) ||
+    Math.min(...a.periods, 99) - Math.min(...b.periods, 99) ||
     a.code.localeCompare(b.code)
   )
 }

@@ -29,11 +29,13 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      "@typescript-eslint/restrict-template-expressions": [
-        "error",
-        { allowNumber: true },
-      ],
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       "@typescript-eslint/no-confusing-void-expression": "off",
+      // An empty string usually means "not set" in this codebase; `||` is intended there.
+      "@typescript-eslint/prefer-nullish-coalescing": [
+        "error",
+        { ignorePrimitives: { string: true } },
+      ],
       "@typescript-eslint/no-misused-promises": [
         "error",
         { checksVoidReturn: { attributes: false } },
@@ -49,11 +51,14 @@ export default tseslint.config(
     // Scripts run in Node with their own tsconfig.
     files: ["scripts/**/*.ts"],
     languageOptions: {
-      parserOptions: { projectService: false, project: ["./tsconfig.scripts.json"] },
+      parserOptions: {
+        projectService: false,
+        project: ["./tsconfig.scripts.json"],
+      },
     },
   },
   {
     files: ["eslint.config.js"],
     ...tseslint.configs.disableTypeChecked,
-  }
+  },
 )

@@ -11,7 +11,8 @@ export function manualStatus(value: MetadataValueDto): MetadataValueDto["status"
 
 export function StatusIcon({ status }: { status: MetadataValueDto["status"] }) {
   if (status === "found") return <CircleCheck className="size-4 text-success" aria-label="found" />
-  if (status === "unclear") return <CircleHelp className="size-4 text-warning" aria-label="unclear" />
+  if (status === "unclear")
+    return <CircleHelp className="size-4 text-warning" aria-label="unclear" />
   return <CircleX className="size-4 text-destructive" aria-label="missing" />
 }
 
@@ -41,7 +42,12 @@ export function HealthPanel({ detail }: { detail: CourseDetailResponse }) {
           <tbody>
             {analysis.fields.map((field) => {
               const status = hasManual ? manualStatus(field) : field.status
-              const doc = field.source === "manual" ? manualDoc : field.source === "study_guide" ? guideDoc : undefined
+              const doc =
+                field.source === "manual"
+                  ? manualDoc
+                  : field.source === "study_guide"
+                    ? guideDoc
+                    : undefined
               return (
                 <tr key={field.key} className="border-b align-top last:border-0">
                   <td className="w-8 py-3 pl-4">
@@ -49,7 +55,9 @@ export function HealthPanel({ detail }: { detail: CourseDetailResponse }) {
                   </td>
                   <td className="w-44 px-3 py-3">
                     <span className="font-medium">{field.label}</span>
-                    {field.required && <span className="ml-1 text-xs text-muted-foreground">required</span>}
+                    {field.required && (
+                      <span className="ml-1 text-xs text-muted-foreground">required</span>
+                    )}
                   </td>
                   <td className="px-3 py-3">
                     <div>{formatFieldValue(field.value)}</div>
@@ -69,9 +77,15 @@ export function HealthPanel({ detail }: { detail: CourseDetailResponse }) {
                         )}
                       </div>
                     )}
-                    {field.status === "unclear" && <p className="mt-1 text-xs text-warning">The document is ambiguous about this.</p>}
+                    {field.status === "unclear" && (
+                      <p className="mt-1 text-xs text-warning">
+                        The document is ambiguous about this.
+                      </p>
+                    )}
                   </td>
-                  <td className="w-36 py-3 pr-4 text-right">{field.source && <SourceBadge kind={field.source} />}</td>
+                  <td className="w-36 py-3 pr-4 text-right">
+                    {field.source && <SourceBadge kind={field.source} />}
+                  </td>
                 </tr>
               )
             })}

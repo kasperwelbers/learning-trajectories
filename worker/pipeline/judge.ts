@@ -10,7 +10,7 @@ import { LINKING_SYSTEM_PROMPT, ltoText, type LinkingLto } from "./link"
  * deliberately not sent: the passage has to speak for itself.
  */
 
-export const judgementSchema = z.object({
+const judgementSchema = z.object({
   kind: z.enum(STATEMENT_KINDS),
   section: z.string(),
   supported: z.boolean(),
@@ -48,14 +48,24 @@ export async function judgePassage(
   input: {
     lto: LinkingLto
     passage: string
-    document: { filename: string; content: { type: "pdf"; data: Uint8Array } | { type: "text"; text: string } }
+    document: {
+      filename: string
+      content: { type: "pdf"; data: Uint8Array } | { type: "text"; text: string }
+    }
   },
 ): Promise<{ judgement: Judgement; model: string }> {
   const { lto, passage, document } = input
   const content: ContentPart[] = [
-    { type: "text", text: `${ltoText(lto)}\n\n# Passage the coordinator pointed at\n${passage}\n\n# Course document: ${document.filename}` },
+    {
+      type: "text",
+      text: `${ltoText(lto)}\n\n# Passage the coordinator pointed at\n${passage}\n\n# Course document: ${document.filename}`,
+    },
     document.content.type === "pdf"
-      ? { type: "pdf", data: document.content.data, filename: document.filename }
+      ? {
+          type: "pdf",
+          data: document.content.data,
+          filename: document.filename,
+        }
       : { type: "text", text: document.content.text },
   ]
   const result = await client.generate({
@@ -67,7 +77,15 @@ export async function judgePassage(
   })
   const levels = result.data.levels.flatMap((l) => {
     const ref = parseBloomRef(l.domain, l.level)
-    return ref ? [{ ref, justification: l.justification.trim(), confidence: Math.min(1, Math.max(0, l.confidence)) }] : []
+    return ref
+      ? [
+          {
+            ref,
+            justification: l.justification.trim(),
+            confidence: Math.min(1, Math.max(0, l.confidence)),
+          },
+        ]
+      : []
   })
   return {
     judgement: {

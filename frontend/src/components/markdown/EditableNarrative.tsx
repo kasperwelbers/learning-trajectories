@@ -15,14 +15,24 @@ interface EditableNarrativeProps {
 }
 
 /** Shows a narrative; coordinators can switch to the editor and save explicitly. */
-export function EditableNarrative({ value, canEdit, onSave, programmeId, empty, placeholder }: EditableNarrativeProps) {
+export function EditableNarrative({
+  value,
+  canEdit,
+  onSave,
+  programmeId,
+  empty,
+  placeholder,
+}: EditableNarrativeProps) {
   const [draft, setDraft] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   if (draft === null) {
     return (
       <div className="group relative">
-        <MarkdownView markdown={value} empty={canEdit ? `${empty} Click "Edit" to write it.` : empty} />
+        <MarkdownView
+          markdown={value}
+          empty={canEdit ? `${empty} Click "Edit" to write it.` : empty}
+        />
         {canEdit && (
           <Button variant="outline" size="xs" className="mt-3" onClick={() => setDraft(value)}>
             <Pencil /> Edit
@@ -46,7 +56,13 @@ export function EditableNarrative({ value, canEdit, onSave, programmeId, empty, 
 
   return (
     <div className="space-y-2">
-      <MarkdownEditor initial={value} onChange={setDraft} programmeId={programmeId} placeholder={placeholder} autoFocus />
+      <MarkdownEditor
+        initial={value}
+        onChange={setDraft}
+        programmeId={programmeId}
+        placeholder={placeholder}
+        autoFocus
+      />
       <div className="flex gap-2">
         <Button size="sm" onClick={() => void save()} disabled={saving}>
           {saving ? "Saving…" : "Save"}

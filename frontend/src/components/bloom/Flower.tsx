@@ -54,7 +54,13 @@ export function Flower({ domain, coverage, size = 28, detail, className }: Flowe
             key={level}
             d={PETAL}
             transform={`rotate(${i * step})`}
-            fill={state === "tested" ? color : state === "taught" ? `color-mix(in oklch, ${color} 22%, transparent)` : EMPTY_COLOR}
+            fill={
+              state === "tested"
+                ? color
+                : state === "taught"
+                  ? `color-mix(in oklab, ${color} 22%, transparent)`
+                  : EMPTY_COLOR
+            }
             stroke={state ? color : "var(--background)"}
             strokeWidth={state === "taught" ? 0.09 : 0.05}
             strokeLinejoin="round"
@@ -79,7 +85,14 @@ interface FlowerRowProps {
 }
 
 /** The flowers of an LTO: by default only for domains with at least one covered level. */
-export function FlowerRow({ coverage, size = 28, all = false, labels = false, detail, className }: FlowerRowProps) {
+export function FlowerRow({
+  coverage,
+  size = 28,
+  all = false,
+  labels = false,
+  detail,
+  className,
+}: FlowerRowProps) {
   const domains = coverage ? (all ? [...BLOOM_DOMAINS] : coveredDomains(coverage)) : []
   if (!coverage || domains.length === 0) {
     return <span className={cn("text-xs text-muted-foreground", className)}>No evidence yet</span>
@@ -88,8 +101,15 @@ export function FlowerRow({ coverage, size = 28, all = false, labels = false, de
     <span className={cn("inline-flex items-center gap-2", className)}>
       {domains.map((domain) => (
         <span key={domain} className="inline-flex flex-col items-center gap-1">
-          <Flower domain={domain} coverage={coverage} size={size} detail={detail ? (level) => detail(domain, level) : undefined} />
-          {labels && <span className="text-[0.7rem] text-muted-foreground">{BLOOM[domain].label}</span>}
+          <Flower
+            domain={domain}
+            coverage={coverage}
+            size={size}
+            detail={detail ? (level) => detail(domain, level) : undefined}
+          />
+          {labels && (
+            <span className="text-[0.7rem] text-muted-foreground">{BLOOM[domain].label}</span>
+          )}
         </span>
       ))}
     </span>
@@ -98,25 +118,48 @@ export function FlowerRow({ coverage, size = 28, all = false, labels = false, de
 
 /** Legend explaining petals and states. */
 export function FlowerLegend({ className }: { className?: string }) {
-  const demo: FlowerCoverage = { cognitive: { remember: "tested", understand: "tested", apply: "taught", analyse: "taught" }, affective: {}, psychomotor: {} }
+  const demo: FlowerCoverage = {
+    cognitive: {
+      remember: "tested",
+      understand: "tested",
+      apply: "taught",
+      analyse: "taught",
+    },
+    affective: {},
+    psychomotor: {},
+  }
   return (
-    <div className={cn("flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground", className)}>
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground",
+        className,
+      )}
+    >
       <span className="inline-flex items-center gap-2">
         <Flower domain="cognitive" coverage={demo} size={26} />
         Petals are Bloom levels, clockwise from the top (low → high)
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <span className="size-3 rounded-full" style={{ background: DOMAIN_COLOR.cognitive }} /> tested
+        <span className="size-3 rounded-full" style={{ background: DOMAIN_COLOR.cognitive }} />{" "}
+        tested
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <span className="size-3 rounded-full border-2" style={{ borderColor: DOMAIN_COLOR.cognitive, background: `color-mix(in oklch, ${DOMAIN_COLOR.cognitive} 22%, transparent)` }} /> taught only
+        <span
+          className="size-3 rounded-full border-2"
+          style={{
+            borderColor: DOMAIN_COLOR.cognitive,
+            background: `color-mix(in oklab, ${DOMAIN_COLOR.cognitive} 22%, transparent)`,
+          }}
+        />{" "}
+        taught only
       </span>
       <span className="inline-flex items-center gap-1.5">
         <span className="size-3 rounded-full" style={{ background: EMPTY_COLOR }} /> not covered
       </span>
       {BLOOM_DOMAINS.map((d) => (
         <span key={d} className="inline-flex items-center gap-1.5">
-          <span className="size-3 rounded-sm" style={{ background: DOMAIN_COLOR[d] }} /> {BLOOM[d].label}
+          <span className="size-3 rounded-sm" style={{ background: DOMAIN_COLOR[d] }} />{" "}
+          {BLOOM[d].label}
         </span>
       ))}
     </div>

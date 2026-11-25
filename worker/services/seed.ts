@@ -65,7 +65,12 @@ export async function seedProgramme(db: Db, programmeId: string): Promise<void> 
   for (const [position, seed] of [DUBLIN, BLOOM_FRAMEWORK].entries()) {
     const framework = await db
       .insert(frameworks)
-      .values({ programmeId, name: seed.name, description: seed.description, position })
+      .values({
+        programmeId,
+        name: seed.name,
+        description: seed.description,
+        position,
+      })
       .returning({ id: frameworks.id })
       .get()
     await db.insert(indicators).values(

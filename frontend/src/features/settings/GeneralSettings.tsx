@@ -16,7 +16,12 @@ export function GeneralSettings() {
     request: () => ({
       method: "PATCH",
       path: `/api/p/${programme.id}`,
-      body: { name, currentYear, studyGuideUrlTemplate: template, version: programme.version },
+      body: {
+        name,
+        currentYear,
+        studyGuideUrlTemplate: template,
+        version: programme.version,
+      },
     }),
     invalidate: () => [keys.programme(programme.id), keys.programmes],
     success: "Settings saved",
@@ -34,17 +39,38 @@ export function GeneralSettings() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="year">Current academic year</Label>
-          <Input id="year" required pattern="\d{4}-\d{4}" value={currentYear} onChange={(e) => setCurrentYear(e.target.value)} className="max-w-40" />
-          <p className="text-xs text-muted-foreground">Shown by default everywhere. Viewers can switch to other years.</p>
+          <Input
+            id="year"
+            required
+            pattern="\d{4}-\d{4}"
+            value={currentYear}
+            onChange={(e) => setCurrentYear(e.target.value)}
+            className="max-w-40"
+          />
+          <p className="text-xs text-muted-foreground">
+            Shown by default everywhere. Viewers can switch to other years.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="template">Study guide page per course</Label>
-          <Input id="template" value={template} onChange={(e) => setTemplate(e.target.value)} placeholder="https://studiegids.vu.nl/en/courses/{year}/{code}" />
+          <Input
+            id="template"
+            value={template}
+            onChange={(e) => setTemplate(e.target.value)}
+            placeholder="https://studiegids.vu.nl/en/courses/{year}/{code}"
+          />
           <p className="text-xs text-muted-foreground">
-            A URL with <code>{"{code}"}</code> and optionally <code>{"{year}"}</code>. Used to fetch each course&apos;s public description.
+            A URL with <code>{"{code}"}</code> and optionally <code>{"{year}"}</code>. Used to fetch
+            each course&apos;s public description.
           </p>
           {!template && (
-            <Button type="button" variant="link" size="xs" className="px-0" onClick={() => setTemplate("https://studiegids.vu.nl/en/courses/{year}/{code}")}>
+            <Button
+              type="button"
+              variant="link"
+              size="xs"
+              className="px-0"
+              onClick={() => setTemplate("https://studiegids.vu.nl/en/courses/{year}/{code}")}
+            >
               Use the VU study guide
             </Button>
           )}

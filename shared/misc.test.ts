@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { academicYearOf, academicYearSchema, shiftAcademicYear, sortAcademicYears } from "./academicYear"
+import {
+  academicYearOf,
+  academicYearSchema,
+  shiftAcademicYear,
+  sortAcademicYears,
+} from "./academicYear"
 import { canEditCourse, canEditTrajectory, isProgrammeAdmin } from "./roles"
 import { parseHubMessage } from "./topics"
 
@@ -39,9 +44,9 @@ describe("roles", () => {
 
 describe("hub messages", () => {
   it("parses valid messages and drops unknown topics", () => {
-    expect(parseHubMessage('{"type":"invalidate","topics":["courses","course:3","bogus"]}')).toEqual(
-      { type: "invalidate", topics: ["courses", "course:3"] },
-    )
+    expect(
+      parseHubMessage('{"type":"invalidate","topics":["courses","course:3","bogus"]}'),
+    ).toEqual({ type: "invalidate", topics: ["courses", "course:3"] })
     expect(parseHubMessage("not json")).toBeNull()
   })
 })

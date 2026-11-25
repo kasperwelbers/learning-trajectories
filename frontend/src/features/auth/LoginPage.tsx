@@ -51,7 +51,15 @@ export function LoginPage() {
         {step === "email" ? (
           <div className="space-y-2">
             <Label htmlFor="email">E-mail address</Label>
-            <Input id="email" type="email" autoComplete="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
         ) : (
           <div className="space-y-2">
@@ -75,7 +83,11 @@ export function LoginPage() {
           {step === "email" ? "Send code" : "Log in"}
         </Button>
         {step === "code" && (
-          <button type="button" className="w-full text-sm text-muted-foreground hover:underline" onClick={() => setStep("email")}>
+          <button
+            type="button"
+            className="w-full text-sm text-muted-foreground hover:underline"
+            onClick={() => setStep("email")}
+          >
             Use another address
           </button>
         )}

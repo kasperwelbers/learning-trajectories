@@ -26,7 +26,8 @@ export function ReportView() {
   const error = structure.error ?? frameworks.error ?? justifications.error ?? coverage.error
   if (error) return <QueryError error={error} />
   const coverageData = coverage.data
-  if (!structure.data || !frameworks.data || !justifications.data || !coverageData) return <Loading />
+  if (!structure.data || !frameworks.data || !justifications.data || !coverageData)
+    return <Loading />
 
   return (
     <article className="mx-auto max-w-4xl space-y-12 print:max-w-none">
@@ -45,13 +46,25 @@ export function ReportView() {
         <FlowerLegend />
       </header>
       {structure.data.trajectories.map((t) => (
-        <TrajectorySection key={t.id} trajectory={t} coverage={coverageData} frameworks={frameworks.data} justifications={justifications.data} />
+        <TrajectorySection
+          key={t.id}
+          trajectory={t}
+          coverage={coverageData}
+          frameworks={frameworks.data}
+          justifications={justifications.data}
+        />
       ))}
     </article>
   )
 }
 
-function Summary({ trajectories, coverage }: { trajectories: TrajectoryDto[]; coverage: CoverageData }) {
+function Summary({
+  trajectories,
+  coverage,
+}: {
+  trajectories: TrajectoryDto[]
+  coverage: CoverageData
+}) {
   const ltos = trajectories.flatMap((t) => t.ltos)
   const covered = ltos.filter((l) => coverage.flowers.has(l.id)).length
   const tested = ltos.filter((l) => coverage.links.some((x) => x.ltoId === l.id && x.tested)).length
@@ -87,15 +100,24 @@ function TrajectorySection({
   justifications: JustificationDto[]
 }) {
   return (
-    <section className="space-y-6 break-before-page">
+    <section className="break-before-page space-y-6">
       <div className="space-y-3">
-        <h2 className="border-l-4 pl-3 text-3xl font-semibold" style={{ borderColor: trajectory.color || "var(--primary)" }}>
+        <h2
+          className="border-l-4 pl-3 text-3xl font-semibold"
+          style={{ borderColor: trajectory.color || "var(--primary)" }}
+        >
           {trajectory.name}
         </h2>
         <MarkdownView markdown={trajectory.narrative} empty="No narrative." />
       </div>
       {trajectory.ltos.map((lto) => (
-        <LtoSection key={lto.id} lto={lto} coverage={coverage} frameworks={frameworks} justifications={justifications} />
+        <LtoSection
+          key={lto.id}
+          lto={lto}
+          coverage={coverage}
+          frameworks={frameworks}
+          justifications={justifications}
+        />
       ))}
     </section>
   )
@@ -113,7 +135,10 @@ function LtoSection({
   justifications: JustificationDto[]
 }) {
   const courses = useMemo(() => {
-    const byCourse = groupBy(coverage.links.filter((l) => l.ltoId === lto.id), (l) => l.courseId)
+    const byCourse = groupBy(
+      coverage.links.filter((l) => l.ltoId === lto.id),
+      (l) => l.courseId,
+    )
     return [...byCourse.entries()]
       .flatMap(([courseId, links]) => {
         const course = coverage.courseById.get(courseId)
@@ -123,13 +148,15 @@ function LtoSection({
   }, [coverage, lto.id])
   const written = frameworks.flatMap((f) =>
     f.indicators.flatMap((i) => {
-      const j = justifications.find((x) => x.ltoId === lto.id && x.indicatorId === i.id && x.text.trim())
+      const j = justifications.find(
+        (x) => x.ltoId === lto.id && x.indicatorId === i.id && x.text.trim(),
+      )
       return j ? [{ framework: f, indicator: i, text: j.text }] : []
     }),
   )
 
   return (
-    <div className="space-y-4 rounded-xl border bg-card p-6 break-inside-avoid print:border-0 print:p-0">
+    <div className="break-inside-avoid space-y-4 rounded-xl border bg-card p-6 print:border-0 print:p-0">
       <div className="flex items-start justify-between gap-6">
         <div>
           <p className="font-mono text-xs text-muted-foreground">{lto.code}</p>
@@ -164,13 +191,19 @@ function LtoSection({
                 return (
                   <tr key={course.id} className="border-t align-top">
                     <td className="py-1.5 pr-3">
-                      <span className="mr-2 font-mono text-xs text-muted-foreground">{course.code}</span>
+                      <span className="mr-2 font-mono text-xs text-muted-foreground">
+                        {course.code}
+                      </span>
                       {course.name}
                     </td>
                     <td className="py-1.5">
                       <span className="flex flex-wrap justify-end gap-1">
                         {levels.map((ref) => (
-                          <LevelBadge key={`${ref.domain}:${ref.level}`} refValue={ref} tested={coverageAt(flower, ref) === "tested"} />
+                          <LevelBadge
+                            key={`${ref.domain}:${ref.level}`}
+                            refValue={ref}
+                            tested={coverageAt(flower, ref) === "tested"}
+                          />
                         ))}
                       </span>
                     </td>

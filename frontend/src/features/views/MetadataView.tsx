@@ -16,8 +16,14 @@ export function MetadataView() {
   const table = useQuery(queries.metadata(programme.id, year))
   const [requiredOnly, setRequiredOnly] = useState(false)
 
-  const fields = useMemo(() => (table.data?.fields ?? []).filter((f) => !requiredOnly || f.required), [table.data, requiredOnly])
-  const rows = useMemo(() => [...(table.data?.rows ?? [])].sort((a, b) => compareCourses(a.course, b.course)), [table.data])
+  const fields = useMemo(
+    () => (table.data?.fields ?? []).filter((f) => !requiredOnly || f.required),
+    [table.data, requiredOnly],
+  )
+  const rows = useMemo(
+    () => [...(table.data?.rows ?? [])].sort((a, b) => compareCourses(a.course, b.course)),
+    [table.data],
+  )
   const foundCount = (key: string) =>
     rows.filter((r) => {
       const v = r.values[key]
@@ -41,11 +47,15 @@ export function MetadataView() {
           <table className="text-xs">
             <thead className="sticky top-0 z-10 bg-card">
               <tr>
-                <th className="sticky left-0 z-20 border-b bg-card px-3 py-2 text-left font-medium">Course</th>
+                <th className="sticky left-0 z-20 border-b bg-card px-3 py-2 text-left font-medium">
+                  Course
+                </th>
                 {fields.map((f) => (
                   <th key={f.key} className="min-w-36 border-b px-3 py-2 text-left font-medium">
                     {f.label}
-                    {f.required && <span className="ml-1 font-normal text-muted-foreground">*</span>}
+                    {f.required && (
+                      <span className="ml-1 font-normal text-muted-foreground">*</span>
+                    )}
                     <span className="block font-normal text-muted-foreground">
                       {foundCount(f.key)} / {rows.length} in manual
                     </span>
@@ -59,7 +69,10 @@ export function MetadataView() {
                   <th className="sticky left-0 z-10 max-w-64 border-b bg-card px-3 py-2 text-left font-normal">
                     <Link
                       to="/p/$programmeId/courses/$courseId"
-                      params={{ programmeId: programme.id, courseId: String(course.id) }}
+                      params={{
+                        programmeId: programme.id,
+                        courseId: String(course.id),
+                      }}
                       search={(s) => ({ year: s.year })}
                       className="block truncate hover:underline"
                       title={course.name}
@@ -90,12 +103,19 @@ function Cell({ value, analysed }: { value: MetadataValueDto | undefined; analys
   if (!analysed || !value) return <span className="text-muted-foreground">–</span>
   const status = manualStatus(value)
   return (
-    <span className="flex items-start gap-1.5" title={value.quote ? `“${value.quote}”${value.page ? ` (p. ${value.page})` : ""}` : undefined}>
+    <span
+      className="flex items-start gap-1.5"
+      title={value.quote ? `“${value.quote}”${value.page ? ` (p. ${value.page})` : ""}` : undefined}
+    >
       <span className="mt-px shrink-0">
         <StatusIcon status={status} />
       </span>
       <span className="line-clamp-3">
-        {value.value === null ? <span className="text-muted-foreground">{value.status}</span> : formatFieldValue(value.value)}
+        {value.value === null ? (
+          <span className="text-muted-foreground">{value.status}</span>
+        ) : (
+          formatFieldValue(value.value)
+        )}
       </span>
       {value.source === "study_guide" && (
         <span title="Only found in the study guide">

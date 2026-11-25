@@ -3,7 +3,6 @@ import { z } from "zod"
 /** Where a learning statement comes from in a course document. */
 export const STATEMENT_KINDS = ["learning_goal", "activity", "assessment"] as const
 export type StatementKind = (typeof STATEMENT_KINDS)[number]
-export const statementKindSchema = z.enum(STATEMENT_KINDS)
 
 export const STATEMENT_KIND_LABELS: Record<StatementKind, string> = {
   learning_goal: "Learning goal",

@@ -18,5 +18,9 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+  return new Date(timestamp).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
 }

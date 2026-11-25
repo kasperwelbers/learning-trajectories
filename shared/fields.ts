@@ -109,8 +109,6 @@ export const SYSTEM_FIELDS: readonly FieldDefinition[] = [
   },
 ]
 
-export const SYSTEM_FIELD_KEYS: ReadonlySet<string> = new Set(SYSTEM_FIELDS.map((f) => f.key))
-
 /** Suggested non-system fields seeded for new programmes. */
 export const DEFAULT_CUSTOM_FIELDS: readonly FieldDefinition[] = [
   {

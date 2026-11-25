@@ -15,7 +15,12 @@ describe("VU study guide import", () => {
   })
 
   it("flattens nested groups and marks electives", () => {
-    const course = (code: string, period = "P4") => ({ code, name: code, credits: "6", periods: [{ code: period }] })
+    const course = (code: string, period = "P4") => ({
+      code,
+      name: code,
+      credits: "6",
+      periods: [{ code: period }],
+    })
     const courses = flattenVuCurriculum(
       [
         {
@@ -24,7 +29,13 @@ describe("VU study guide import", () => {
           description: "Second year bachelor",
           courses: [course("S_MCPO", "P1")],
           moduleGroups: [
-            { code: "k2", type: "Obligatory choice", description: "Social Science for Society 2", courses: [course("S_AIS", "P5")], moduleGroups: [] },
+            {
+              code: "k2",
+              type: "Obligatory choice",
+              description: "Social Science for Society 2",
+              courses: [course("S_AIS", "P5")],
+              moduleGroups: [],
+            },
           ],
         },
         {
@@ -32,7 +43,15 @@ describe("VU study guide import", () => {
           type: "Free Choice",
           description: "Electives",
           courses: [],
-          moduleGroups: [{ code: "M", type: "Minor", description: "Minor Brain", courses: [course("AB_1")], moduleGroups: [] }],
+          moduleGroups: [
+            {
+              code: "M",
+              type: "Minor",
+              description: "Minor Brain",
+              courses: [course("AB_1")],
+              moduleGroups: [],
+            },
+          ],
         },
       ],
       "en",

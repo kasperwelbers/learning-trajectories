@@ -84,7 +84,12 @@ frameworkRoutes.patch("/frameworks/:fid", validate("json", updateFrameworkBody),
     .get("db")
     .update(frameworks)
     .set(c.req.valid("json"))
-    .where(and(eq(frameworks.id, intParam(c.req.param("fid"))), eq(frameworks.programmeId, c.get("programmeId"))))
+    .where(
+      and(
+        eq(frameworks.id, intParam(c.req.param("fid"))),
+        eq(frameworks.programmeId, c.get("programmeId")),
+      ),
+    )
     .run()
   assertChanged(result, "Framework not found")
   notify(c, "frameworks")
@@ -96,7 +101,12 @@ frameworkRoutes.delete("/frameworks/:fid", async (c) => {
   const result = await c
     .get("db")
     .delete(frameworks)
-    .where(and(eq(frameworks.id, intParam(c.req.param("fid"))), eq(frameworks.programmeId, c.get("programmeId"))))
+    .where(
+      and(
+        eq(frameworks.id, intParam(c.req.param("fid"))),
+        eq(frameworks.programmeId, c.get("programmeId")),
+      ),
+    )
     .run()
   assertChanged(result, "Framework not found")
   notify(c, "frameworks", "justifications")
@@ -126,7 +136,12 @@ frameworkRoutes.post(
       .get()
     const row = await db
       .insert(indicators)
-      .values({ ...c.req.valid("json"), programmeId, frameworkId, position: (last?.value ?? -1) + 1 })
+      .values({
+        ...c.req.valid("json"),
+        programmeId,
+        frameworkId,
+        position: (last?.value ?? -1) + 1,
+      })
       .returning({ id: indicators.id })
       .get()
     notify(c, "frameworks")
@@ -140,7 +155,12 @@ frameworkRoutes.patch("/indicators/:iid", validate("json", updateIndicatorBody),
     .get("db")
     .update(indicators)
     .set(c.req.valid("json"))
-    .where(and(eq(indicators.id, intParam(c.req.param("iid"))), eq(indicators.programmeId, c.get("programmeId"))))
+    .where(
+      and(
+        eq(indicators.id, intParam(c.req.param("iid"))),
+        eq(indicators.programmeId, c.get("programmeId")),
+      ),
+    )
     .run()
   assertChanged(result, "Indicator not found")
   notify(c, "frameworks")
@@ -152,7 +172,12 @@ frameworkRoutes.delete("/indicators/:iid", async (c) => {
   const result = await c
     .get("db")
     .delete(indicators)
-    .where(and(eq(indicators.id, intParam(c.req.param("iid"))), eq(indicators.programmeId, c.get("programmeId"))))
+    .where(
+      and(
+        eq(indicators.id, intParam(c.req.param("iid"))),
+        eq(indicators.programmeId, c.get("programmeId")),
+      ),
+    )
     .run()
   assertChanged(result, "Indicator not found")
   notify(c, "frameworks", "justifications")
@@ -207,17 +232,32 @@ frameworkRoutes.put(
     const updatedBy = actorEmail(c)
     if (version === null) {
       try {
-        await db
-          .insert(justifications)
-          .values({ ltoId, indicatorId, programmeId, text, updatedBy, updatedAt: Date.now() })
+        await db.insert(justifications).values({
+          ltoId,
+          indicatorId,
+          programmeId,
+          text,
+          updatedBy,
+          updatedAt: Date.now(),
+        })
       } catch (error) {
-        if (isUniqueViolation(error)) throw new HttpError(409, "Someone else wrote this justification in the meantime. Reload and try again.", "conflict")
+        if (isUniqueViolation(error))
+          throw new HttpError(
+            409,
+            "Someone else wrote this justification in the meantime. Reload and try again.",
+            "conflict",
+          )
         throw error
       }
     } else {
       const result = await db
         .update(justifications)
-        .set({ text, updatedBy, updatedAt: Date.now(), version: sql`${justifications.version} + 1` })
+        .set({
+          text,
+          updatedBy,
+          updatedAt: Date.now(),
+          version: sql`${justifications.version} + 1`,
+        })
         .where(
           and(
             eq(justifications.ltoId, ltoId),
@@ -237,7 +277,7 @@ frameworkRoutes.put(
 
 type FieldRow = typeof extractionFields.$inferSelect
 
-export function toFieldDto(row: FieldRow): FieldDto {
+function toFieldDto(row: FieldRow): FieldDto {
   return {
     id: row.id,
     key: row.key,
@@ -275,13 +315,19 @@ frameworkRoutes.post("/fields", validate("json", createFieldBody), async (c) => 
   try {
     const row = await db
       .insert(extractionFields)
-      .values({ ...c.req.valid("json"), programmeId, system: false, position: (last?.value ?? -1) + 1 })
+      .values({
+        ...c.req.valid("json"),
+        programmeId,
+        system: false,
+        position: (last?.value ?? -1) + 1,
+      })
       .returning({ id: extractionFields.id })
       .get()
     notify(c, "fields", "courses")
     return c.json({ id: row.id }, 201)
   } catch (error) {
-    if (isUniqueViolation(error)) throw new HttpError(409, "A field with this key already exists", "conflict")
+    if (isUniqueViolation(error))
+      throw new HttpError(409, "A field with this key already exists", "conflict")
     throw error
   }
 })

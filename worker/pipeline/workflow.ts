@@ -33,7 +33,13 @@ import {
 import { documentPages } from "./documentText"
 import { EXTRACTION_PROMPT_VERSION, extractDocument, parseCachedExtraction } from "./extract"
 import { judgePassage, type Judgement } from "./judge"
-import { LINKING_PROMPT_VERSION, linkLto, type LinkingCourse, type LinkingLto, type ProposedLink } from "./link"
+import {
+  LINKING_PROMPT_VERSION,
+  linkLto,
+  type LinkingCourse,
+  type LinkingLto,
+  type ProposedLink,
+} from "./link"
 import {
   saveAnalysisResults,
   saveLtoRelink,
@@ -85,13 +91,15 @@ const COURSES_PER_CALL = 12
 
 /** Errors the provider will keep returning; retrying them only burns time and money. */
 function toStepError(error: unknown): Error {
-  if (error instanceof LlmRequestError && !error.retryable) return new NonRetryableError(error.message)
+  if (error instanceof LlmRequestError && !error.retryable)
+    return new NonRetryableError(error.message)
   if (error instanceof Error) return error
   return new Error(String(error))
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof InvalidModelOutput) return `The AI returned an unusable answer: ${error.message}`
+  if (error instanceof InvalidModelOutput)
+    return `The AI returned an unusable answer: ${error.message}`
   return error instanceof Error ? error.message : String(error)
 }
 
@@ -103,7 +111,11 @@ async function aiStep<T>(work: () => Promise<T>): Promise<T> {
   }
 }
 
-async function inBatches<T, R>(items: readonly T[], size: number, run: (item: T) => Promise<R>): Promise<R[]> {
+async function inBatches<T, R>(
+  items: readonly T[],
+  size: number,
+  run: (item: T) => Promise<R>,
+): Promise<R[]> {
   const results: R[] = []
   for (let i = 0; i < items.length; i += size) {
     results.push(...(await Promise.all(items.slice(i, i + size).map(run))))
@@ -149,7 +161,11 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
   // ── Full analysis of one course-year ──────────────────────────────────────
 
-  private async runAnalysis(instanceId: string, analysisId: number, step: WorkflowStep): Promise<void> {
+  private async runAnalysis(
+    instanceId: string,
+    analysisId: number,
+    step: WorkflowStep,
+  ): Promise<void> {
     const context = await step.do("load", DB_STEP, () => this.loadAnalysis(analysisId, instanceId))
     if (!context) return // superseded by a newer run, or deleted
 
@@ -171,7 +187,9 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       const assembled = await step.do("assemble", DB_STEP, () => this.assemble(context, cacheKeys))
 
       await this.setStep(step, context, "linking to LTOs")
-      const ltoList = await step.do("list LTOs", DB_STEP, () => ltosForLinking(this.db, context.programmeId))
+      const ltoList = await step.do("list LTOs", DB_STEP, () =>
+        ltosForLinking(this.db, context.programmeId),
+      )
       const kinds = new Map(context.documents.map((d) => [d.id, d.kind]))
       const course: LinkingCourse = {
         key: context.analysisId,
@@ -200,28 +218,44 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       if (pointerIds.length > 0) {
         await this.setStep(step, context, "judging pointers")
         for (const pointerId of pointerIds) {
-          judgements[pointerId] = await step.do(`judge ${pointerId}`, AI_STEP, () => this.judgeSafely(pointerId))
+          judgements[pointerId] = await step.do(`judge ${pointerId}`, AI_STEP, () =>
+            this.judgeSafely(pointerId),
+          )
         }
       }
 
       await this.setStep(step, context, "saving")
-      await step.do("save", DB_STEP, () => this.saveAnalysis(context, instanceId, assembled, linked, judgements))
+      await step.do("save", DB_STEP, () =>
+        this.saveAnalysis(context, instanceId, assembled, linked, judgements),
+      )
       await step.do("notify done", DB_STEP, () => this.notify(context, true))
     } catch (error) {
       await step.do("mark failed", DB_STEP, async () => {
         await this.db
           .update(analyses)
-          .set({ status: "failed", step: null, error: errorMessage(error), finishedAt: Date.now() })
+          .set({
+            status: "failed",
+            step: null,
+            error: errorMessage(error),
+            finishedAt: Date.now(),
+          })
           .where(and(eq(analyses.id, analysisId), eq(analyses.workflowId, instanceId)))
         await this.notify(context, false)
       })
     }
   }
 
-  private async loadAnalysis(analysisId: number, instanceId: string): Promise<AnalysisContext | null> {
+  private async loadAnalysis(
+    analysisId: number,
+    instanceId: string,
+  ): Promise<AnalysisContext | null> {
     const analysis = await this.db.select().from(analyses).where(eq(analyses.id, analysisId)).get()
     if (analysis?.workflowId !== instanceId) return null
-    const course = await this.db.select().from(courses).where(eq(courses.id, analysis.courseId)).get()
+    const course = await this.db
+      .select()
+      .from(courses)
+      .where(eq(courses.id, analysis.courseId))
+      .get()
     if (!course) return null
     const docs = await this.db
       .select()
@@ -232,7 +266,11 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       .update(analyses)
       .set({ status: "running", step: "reading documents", error: null })
       .where(eq(analyses.id, analysisId))
-    const order: Record<DocumentKind, number> = { study_guide: 0, manual: 1, supplementary: 2 }
+    const order: Record<DocumentKind, number> = {
+      study_guide: 0,
+      manual: 1,
+      supplementary: 2,
+    }
     return {
       analysisId,
       programmeId: analysis.programmeId,
@@ -252,7 +290,11 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     }
   }
 
-  private async setStep(step: WorkflowStep, context: AnalysisContext, name: AnalysisStep): Promise<void> {
+  private async setStep(
+    step: WorkflowStep,
+    context: AnalysisContext,
+    name: AnalysisStep,
+  ): Promise<void> {
     await step.do(`step: ${name}`, DB_STEP, async () => {
       await this.db.update(analyses).set({ step: name }).where(eq(analyses.id, context.analysisId))
       await broadcast(this.env, context.programmeId, [courseTopic(context.courseId), "courses"])
@@ -283,7 +325,9 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       console.warn(`[pipeline] Could not extract text from ${doc.filename}`, error)
       pages = []
     }
-    await this.env.FILES.put(key, JSON.stringify(pages), { httpMetadata: { contentType: "application/json" } })
+    await this.env.FILES.put(key, JSON.stringify(pages), {
+      httpMetadata: { contentType: "application/json" },
+    })
     return pages.length
   }
 
@@ -300,7 +344,10 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     doc: { r2Key: string; filename: string; mimeType: string; sha256: string },
   ): Promise<{ type: "pdf"; data: Uint8Array } | { type: "text"; text: string }> {
     if (doc.mimeType === "application/pdf") return { type: "pdf", data: await this.readFile(doc) }
-    return { type: "text", text: (await this.readPages(programmeId, doc.sha256)).join("\n\n") }
+    return {
+      type: "text",
+      text: (await this.readPages(programmeId, doc.sha256)).join("\n\n"),
+    }
   }
 
   private async fields(programmeId: string): Promise<FieldDefinition[]> {
@@ -309,7 +356,13 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       .from(extractionFields)
       .where(eq(extractionFields.programmeId, programmeId))
       .orderBy(asc(extractionFields.position))
-    return rows.map((r) => ({ key: r.key, label: r.label, type: r.type, prompt: r.prompt, required: r.required }))
+    return rows.map((r) => ({
+      key: r.key,
+      label: r.label,
+      type: r.type,
+      prompt: r.prompt,
+      required: r.required,
+    }))
   }
 
   private fieldsFor(kind: DocumentKind, fields: FieldDefinition[]): FieldDefinition[] {
@@ -320,7 +373,9 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   private async ensureExtraction(programmeId: string, doc: DocumentRef): Promise<string> {
     const { client, extractModel } = aiConfig(this.env)
     const fields = this.fieldsFor(doc.kind, await this.fields(programmeId))
-    const cacheKey = await sha256Hex(JSON.stringify([EXTRACTION_PROMPT_VERSION, extractModel, doc.kind, fields]))
+    const cacheKey = await sha256Hex(
+      JSON.stringify([EXTRACTION_PROMPT_VERSION, extractModel, doc.kind, fields]),
+    )
     const cached = await this.db
       .select({ sha256: extractionCache.sha256 })
       .from(extractionCache)
@@ -341,7 +396,10 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     return cacheKey
   }
 
-  private async assemble(context: AnalysisContext, cacheKeys: Record<number, string>): Promise<Assembled> {
+  private async assemble(
+    context: AnalysisContext,
+    cacheKeys: Record<number, string>,
+  ): Promise<Assembled> {
     const fields = await this.fields(context.programmeId)
     const extracted: ExtractedDocument[] = []
     for (const doc of context.documents) {
@@ -352,8 +410,13 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
         .from(extractionCache)
         .where(and(eq(extractionCache.sha256, doc.sha256), eq(extractionCache.cacheKey, cacheKey)))
         .get()
-      const extraction = row ? parseCachedExtraction(row.result, this.fieldsFor(doc.kind, fields)) : null
-      if (!extraction) throw new NonRetryableError(`The extraction of ${doc.filename} is missing or outdated; run the analysis again`)
+      const extraction = row
+        ? parseCachedExtraction(row.result, this.fieldsFor(doc.kind, fields))
+        : null
+      if (!extraction)
+        throw new NonRetryableError(
+          `The extraction of ${doc.filename} is missing or outdated; run the analysis again`,
+        )
       extracted.push({
         documentId: doc.id,
         kind: doc.kind,
@@ -368,7 +431,12 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     context: AnalysisContext,
     instanceId: string,
     assembled: Assembled,
-    linked: { ltoId: number; hash: string; links: ProposedLink[]; model: string }[],
+    linked: {
+      ltoId: number
+      hash: string
+      links: ProposedLink[]
+      model: string
+    }[],
     judgements: Record<number, Judgement | null>,
   ): Promise<void> {
     const current = await this.db
@@ -381,7 +449,11 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     const kinds = new Map(context.documents.map((d) => [d.id, d.kind]))
     const byOrdinal = new Map(assembled.statements.map((s) => [s.ordinal, s]))
     const statementRows = [...assembled.statements]
-    const links = buildLinks(linked.flatMap((l) => l.links), (id) => byOrdinal.get(id), kinds)
+    const links = buildLinks(
+      linked.flatMap((l) => l.links),
+      (id) => byOrdinal.get(id),
+      kinds,
+    )
 
     const pointerUpdates: Parameters<typeof saveAnalysisResults>[4] = []
     const docById = new Map(context.documents.map((d) => [d.id, d]))
@@ -394,7 +466,11 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       const doc = docById.get(pointer.documentId)
       if (judgement === undefined || !doc) continue
       if (judgement === null) {
-        pointerUpdates.push({ pointerId: pointer.id, status: "failed", verdict: "The AI could not judge this passage." })
+        pointerUpdates.push({
+          pointerId: pointer.id,
+          status: "failed",
+          verdict: "The AI could not judge this passage.",
+        })
         continue
       }
       const matcher = new DocumentMatcher(await this.readPages(context.programmeId, doc.sha256))
@@ -424,7 +500,12 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
 
   // ── Re-link one LTO across the programme ──────────────────────────────────
 
-  private async runRelink(instanceId: string, ltoId: number, delaySeconds: number, step: WorkflowStep): Promise<void> {
+  private async runRelink(
+    instanceId: string,
+    ltoId: number,
+    delaySeconds: number,
+    step: WorkflowStep,
+  ): Promise<void> {
     if (delaySeconds > 0) await step.sleep("wait for further edits", `${delaySeconds} seconds`)
     const plan = await step.do("plan", DB_STEP, () => this.planRelink(instanceId, ltoId))
     if (!plan) return
@@ -478,9 +559,17 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   private async planRelink(
     instanceId: string,
     ltoId: number,
-  ): Promise<{ programmeId: string; lto: LinkingLto; hash: string; groups: number[][] } | null> {
+  ): Promise<{
+    programmeId: string
+    lto: LinkingLto
+    hash: string
+    groups: number[][]
+  } | null> {
     const row = await this.db
-      .select({ programmeId: ltos.programmeId, relinkWorkflowId: ltos.relinkWorkflowId })
+      .select({
+        programmeId: ltos.programmeId,
+        relinkWorkflowId: ltos.relinkWorkflowId,
+      })
       .from(ltos)
       .where(eq(ltos.id, ltoId))
       .get()
@@ -496,13 +585,22 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     for (const a of analysisRows) byYear.set(a.year, [...(byYear.get(a.year) ?? []), a.id])
     const groups: number[][] = []
     for (const ids of byYear.values()) {
-      for (let i = 0; i < ids.length; i += COURSES_PER_CALL) groups.push(ids.slice(i, i + COURSES_PER_CALL))
+      for (let i = 0; i < ids.length; i += COURSES_PER_CALL)
+        groups.push(ids.slice(i, i + COURSES_PER_CALL))
     }
-    return { programmeId: row.programmeId, lto, hash: await ltoHash(lto), groups }
+    return {
+      programmeId: row.programmeId,
+      lto,
+      hash: await ltoHash(lto),
+      groups,
+    }
   }
 
   /** Statements of several analyses as linking input, identified by database id. */
-  private async linkingCourses(programmeId: string, analysisIds: number[]): Promise<LinkingCourse[]> {
+  private async linkingCourses(
+    programmeId: string,
+    analysisIds: number[],
+  ): Promise<LinkingCourse[]> {
     const analysisRows = await this.db
       .select({ id: analyses.id, code: courses.code, name: courses.name })
       .from(analyses)
@@ -521,7 +619,9 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       // Pointer passages are judged separately and never re-linked automatically.
       statements: rows
         .filter((r) => r.statement.analysisId === a.id && r.statement.pointerId === null)
-        .flatMap((r) => toLinkingStatements([toStoredStatement(r.statement)], kinds, () => r.statement.id)),
+        .flatMap((r) =>
+          toLinkingStatements([toStoredStatement(r.statement)], kinds, () => r.statement.id),
+        ),
     }))
   }
 
@@ -530,15 +630,24 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   private async judge(pointerId: number): Promise<Judgement | null> {
     const pointer = await this.db.select().from(pointers).where(eq(pointers.id, pointerId)).get()
     if (!pointer) return null
-    const doc = await this.db.select().from(documents).where(eq(documents.id, pointer.documentId)).get()
+    const doc = await this.db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, pointer.documentId))
+      .get()
     if (!doc) return null
-    const lto = (await ltosForLinking(this.db, pointer.programmeId)).find((l) => l.id === pointer.ltoId)
+    const lto = (await ltosForLinking(this.db, pointer.programmeId)).find(
+      (l) => l.id === pointer.ltoId,
+    )
     if (!lto) return null
     const { client, linkModel } = aiConfig(this.env)
     const { judgement } = await judgePassage(client, linkModel, {
       lto,
       passage: pointer.passage,
-      document: { filename: doc.filename, content: await this.modelContent(pointer.programmeId, doc) },
+      document: {
+        filename: doc.filename,
+        content: await this.modelContent(pointer.programmeId, doc),
+      },
     })
     return judgement
   }
@@ -564,7 +673,11 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
         .from(analyses)
         .where(and(eq(analyses.courseId, pointer.courseId), eq(analyses.year, pointer.year)))
         .get()
-      const doc = await this.db.select().from(documents).where(eq(documents.id, pointer.documentId)).get()
+      const doc = await this.db
+        .select()
+        .from(documents)
+        .where(eq(documents.id, pointer.documentId))
+        .get()
       if (!analysis || !doc) return
       if (!judgement) {
         await savePointerResult(this.db, analysis.id, pointer.id, null, [], {
@@ -575,12 +688,23 @@ export class AnalysisWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
         const matcher = new DocumentMatcher(await this.readPages(pointer.programmeId, doc.sha256))
         const rows = pointerRows(pointer, judgement, matcher, doc.kind)
         const found = rows.statement.verification !== "unverified" || matcher.isEmpty
-        await savePointerResult(this.db, analysis.id, pointer.id, rows.statement, found ? rows.links : [], {
-          status: found && judgement.supported ? "supported" : "not_supported",
-          verdict: found ? judgement.verdict : "The passage could not be found in the document.",
-        })
+        await savePointerResult(
+          this.db,
+          analysis.id,
+          pointer.id,
+          rows.statement,
+          found ? rows.links : [],
+          {
+            status: found && judgement.supported ? "supported" : "not_supported",
+            verdict: found ? judgement.verdict : "The passage could not be found in the document.",
+          },
+        )
       }
-      await broadcast(this.env, pointer.programmeId, [courseTopic(pointer.courseId), "courses", "coverage"])
+      await broadcast(this.env, pointer.programmeId, [
+        courseTopic(pointer.courseId),
+        "courses",
+        "coverage",
+      ])
     })
   }
 }

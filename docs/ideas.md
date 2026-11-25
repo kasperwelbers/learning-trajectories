@@ -20,6 +20,7 @@ Ideas that came up during design but are intentionally not built yet.
 ## Ideas from the design discussion (November 2026)
 
 ### Questions instead of comments
+
 The analysis should give coordinators a clear path to act on its results. Proposal: a
 **questions** feature (rather than free comments), because a question says what is expected of
 the person in charge and always has an answer path.
@@ -35,6 +36,7 @@ the person in charge and always has an answer path.
 - Disputes on links could become one kind of question.
 
 ### A continuous "AI visitation committee"
+
 Coordinators hold rich, qualitative knowledge, but not a shared understanding of formal
 education guidelines and theory. The tool can supply that expert view reproducibly:
 
@@ -51,6 +53,7 @@ education guidelines and theory. The tool can supply that expert view reproducib
   and to compare with what earlier committees saw.
 
 ### Local / university AI
+
 The university Open WebUI server exposes an OpenAI-compatible API. Set `AI_BASE_URL` to its
 `/api` endpoint, `AI_API_KEY` to its key and the model names accordingly. Check first whether
 the chosen model supports structured output (JSON schema) and PDF input; if PDFs are not

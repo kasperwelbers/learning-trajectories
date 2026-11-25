@@ -63,13 +63,19 @@ export interface MeResponse {
 
 // ── Programmes ──────────────────────────────────────────────────────────────
 
-export const createProgrammeBody = z.object({ name, currentYear: academicYearSchema })
+export const createProgrammeBody = z.object({
+  name,
+  currentYear: academicYearSchema,
+})
 /** Placeholders {code} and {year} are filled in per course, e.g. https://studiegids.vu.nl/en/courses/{year}/{code} */
 const urlTemplate = z
   .string()
   .trim()
   .max(500)
-  .refine((v) => v === "" || (/^https?:\/\//.test(v) && v.includes("{code}")), "Use an http(s) URL containing {code}")
+  .refine(
+    (v) => v === "" || (/^https?:\/\//.test(v) && v.includes("{code}")),
+    "Use an http(s) URL containing {code}",
+  )
 
 export const updateProgrammeBody = z.object({
   name: name.optional(),
@@ -111,7 +117,9 @@ export interface MemberDto {
   assignments: RoleAssignment[]
 }
 
-export const createShareLinkBody = z.object({ label: z.string().trim().max(100) })
+export const createShareLinkBody = z.object({
+  label: z.string().trim().max(100),
+})
 
 export interface ShareLinkDto {
   token: string
@@ -143,7 +151,9 @@ export const updateLtoBody = z.object({
   version,
 })
 
-export const reorderBody = z.object({ ids: z.array(z.number().int()).min(1).max(500) })
+export const reorderBody = z.object({
+  ids: z.array(z.number().int()).min(1).max(500),
+})
 
 export const importLtosBody = z.object({
   rows: z
@@ -192,7 +202,10 @@ export interface StructureResponse {
 
 // ── Frameworks & justifications ─────────────────────────────────────────────
 
-export const createFrameworkBody = z.object({ name, description: markdown.optional() })
+export const createFrameworkBody = z.object({
+  name,
+  description: markdown.optional(),
+})
 export const updateFrameworkBody = z.object({
   name: name.optional(),
   description: markdown.optional(),
@@ -271,7 +284,11 @@ const courseCode = z.string().trim().min(1).max(40)
 
 const programmeYear = z.number().int().min(1).max(10).nullable()
 
-export const createCourseBody = z.object({ code: courseCode, name, programmeYear: programmeYear.optional() })
+export const createCourseBody = z.object({
+  code: courseCode,
+  name,
+  programmeYear: programmeYear.optional(),
+})
 export const updateCourseBody = z.object({
   code: courseCode.optional(),
   name: name.optional(),
@@ -279,7 +296,13 @@ export const updateCourseBody = z.object({
 })
 export const bulkCreateCoursesBody = z.object({
   courses: z
-    .array(z.object({ code: courseCode, name, programmeYear: programmeYear.optional() }))
+    .array(
+      z.object({
+        code: courseCode,
+        name,
+        programmeYear: programmeYear.optional(),
+      }),
+    )
     .min(1)
     .max(300),
 })
@@ -471,7 +494,12 @@ export interface PointerDto {
 }
 
 export interface CourseDetailResponse {
-  course: { id: number; code: string; name: string; programmeYear: number | null }
+  course: {
+    id: number
+    code: string
+    name: string
+    programmeYear: number | null
+  }
   year: string
   /** Years for which this course has documents, newest first. */
   documentYears: string[]
@@ -483,7 +511,10 @@ export interface CourseDetailResponse {
 
 export const analyzeBody = z.object({ year: academicYearSchema })
 
-export const fetchStudyGuideBody = z.object({ year: academicYearSchema, url: z.url() })
+export const fetchStudyGuideBody = z.object({
+  year: academicYearSchema,
+  url: z.url(),
+})
 
 export interface FetchStudyGuidesResponse {
   fetched: number
@@ -556,7 +587,10 @@ export interface LtoEvidenceResponse {
 export interface MetadataTableResponse {
   year: string
   fields: FieldDto[]
-  rows: { course: CourseFactsDto; values: Partial<Record<string, MetadataValueDto>> }[]
+  rows: {
+    course: CourseFactsDto
+    values: Partial<Record<string, MetadataValueDto>>
+  }[]
 }
 
 export interface UploadImageResponse {

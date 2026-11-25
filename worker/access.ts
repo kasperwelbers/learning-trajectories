@@ -38,7 +38,7 @@ export function scopeIdOf(assignment: RoleAssignment): number {
   }
 }
 
-export async function resolveAccess(
+async function resolveAccess(
   db: Db,
   user: SessionUser | null,
   shareTokens: readonly string[],
@@ -56,7 +56,9 @@ export async function resolveAccess(
     const link = await db
       .select({ token: shareLinks.token })
       .from(shareLinks)
-      .where(and(eq(shareLinks.programmeId, programmeId), inArray(shareLinks.token, [...shareTokens])))
+      .where(
+        and(eq(shareLinks.programmeId, programmeId), inArray(shareLinks.token, [...shareTokens])),
+      )
       .get()
     if (link) return { kind: "share" }
   }

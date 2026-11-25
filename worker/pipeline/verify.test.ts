@@ -20,9 +20,9 @@ describe("quote verification", () => {
   })
 
   it("accepts near matches as approximate", () => {
-    expect(matcher.verify("differentiate between manual and automatic content analysis techniques")).toBe(
-      "approximate",
-    )
+    expect(
+      matcher.verify("differentiate between manual and automatic content analysis techniques"),
+    ).toBe("approximate")
   })
 
   it("rejects quotes that are not in the document", () => {

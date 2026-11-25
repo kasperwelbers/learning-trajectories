@@ -75,7 +75,9 @@ function taxonomyText(): string {
   return BLOOM_DOMAINS.map((domain) => {
     const info = BLOOM[domain]
     const levels = info.levels
-      .map((l, i) => `  ${i + 1}. ${l.key} — ${l.description} (typical verbs: ${l.verbs.join(", ")})`)
+      .map(
+        (l, i) => `  ${i + 1}. ${l.key} — ${l.description} (typical verbs: ${l.verbs.join(", ")})`,
+      )
       .join("\n")
     return `${info.label} domain (${info.description}):\n${levels}`
   }).join("\n\n")
@@ -150,7 +152,9 @@ export function sanitiseLinks(
   for (const course of courses) for (const s of course.statements) courseOf.set(s.id, course.key)
   // Links for courses the model itself judged not to address the LTO are discarded.
   const rejected = new Set(
-    raw.courses.filter((c) => !c.core_subject_addressed).map((c) => c.course_code.trim().toLowerCase()),
+    raw.courses
+      .filter((c) => !c.core_subject_addressed)
+      .map((c) => c.course_code.trim().toLowerCase()),
   )
   const merged = new Map<string, ProposedLink>()
   for (const link of raw.links) {
@@ -159,7 +163,8 @@ export function sanitiseLinks(
     const perCourse = new Map<number, number[]>()
     for (const id of new Set(link.statement_ids)) {
       const courseKey = courseOf.get(id)
-      if (courseKey !== undefined) perCourse.set(courseKey, [...(perCourse.get(courseKey) ?? []), id])
+      if (courseKey !== undefined)
+        perCourse.set(courseKey, [...(perCourse.get(courseKey) ?? []), id])
     }
     for (const [courseKey, statementIds] of perCourse) {
       const key = `${courseKey}|${ref.domain}|${ref.level}`
@@ -197,5 +202,8 @@ export async function linkLto(
     schema: linkingOutputSchema,
     schemaName: "lto_links",
   })
-  return { links: sanitiseLinks(result.data, lto.id, withStatements), model: result.model }
+  return {
+    links: sanitiseLinks(result.data, lto.id, withStatements),
+    model: result.model,
+  }
 }

@@ -30,13 +30,19 @@ export async function loadStaleness(
   const [hashes, docHashes, runs] = await Promise.all([
     ltoHashes(db, programmeId),
     documentsHashes(db, programmeId),
-    inChunks(analysisIds, (chunk) => db.select().from(linkRuns).where(inArray(linkRuns.analysisId, chunk))),
+    inChunks(analysisIds, (chunk) =>
+      db.select().from(linkRuns).where(inArray(linkRuns.analysisId, chunk)),
+    ),
   ])
   const runHash = new Map(runs.map((r) => [`${r.analysisId}|${r.ltoId}`, r.ltoHash]))
   const documentsChanged = (a: AnalysisLike) =>
     a.hasResults && a.documentsHash !== (docHashes.get(`${a.courseId}|${a.year}`) ?? null)
   const staleLtos = (a: AnalysisLike) =>
-    a.hasResults ? [...hashes].filter(([ltoId, hash]) => runHash.get(`${a.id}|${ltoId}`) !== hash).map(([id]) => id) : []
+    a.hasResults
+      ? [...hashes]
+          .filter(([ltoId, hash]) => runHash.get(`${a.id}|${ltoId}`) !== hash)
+          .map(([id]) => id)
+      : []
   return {
     documentsChanged,
     staleLtos,

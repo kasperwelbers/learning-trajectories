@@ -13,7 +13,10 @@ export type LiveStatus = "connecting" | "live" | "offline"
  * invalidate the matching queries. After a reconnect everything is refetched, since updates
  * may have been missed while offline.
  */
-export function useLiveUpdates(programmeId: string): { status: LiveStatus; viewers: number } {
+export function useLiveUpdates(programmeId: string): {
+  status: LiveStatus
+  viewers: number
+} {
   const queryClient = useQueryClient()
   const [status, setStatus] = useState<LiveStatus>("connecting")
   const [viewers, setViewers] = useState(1)

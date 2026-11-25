@@ -35,17 +35,28 @@ export class AnthropicClient implements LlmClient {
     })
     const text = await response.text()
     if (!response.ok) {
-      throw new LlmRequestError(`AI request failed (${response.status}): ${text.slice(0, 300)}`, response.status)
+      throw new LlmRequestError(
+        `AI request failed (${response.status}): ${text.slice(0, 300)}`,
+        response.status,
+      )
     }
     const message = messageSchema.safeParse(JSON.parse(text))
     if (!message.success) throw new InvalidModelOutput("Unexpected response from Anthropic", text)
-    const toolUse = message.data.content.find((block): block is ToolUseBlock => block.type === "tool_use")
+    const toolUse = message.data.content.find(
+      (block): block is ToolUseBlock => block.type === "tool_use",
+    )
     if (!toolUse) {
-      throw new InvalidModelOutput(`The model did not call the tool (stop reason: ${message.data.stop_reason ?? "?"})`, text)
+      throw new InvalidModelOutput(
+        `The model did not call the tool (stop reason: ${message.data.stop_reason ?? "?"})`,
+        text,
+      )
     }
     const parsed = request.schema.safeParse(toolUse.input)
     if (!parsed.success) {
-      throw new InvalidModelOutput(`Invalid model output: ${parsed.error.issues[0]?.message ?? ""}`, JSON.stringify(toolUse.input))
+      throw new InvalidModelOutput(
+        `Invalid model output: ${parsed.error.issues[0]?.message ?? ""}`,
+        JSON.stringify(toolUse.input),
+      )
     }
     return { data: parsed.data, model: message.data.model }
   }
@@ -75,7 +86,11 @@ function toBlock(part: ContentPart) {
     case "pdf":
       return {
         type: "document",
-        source: { type: "base64", media_type: "application/pdf", data: toBase64(part.data) },
+        source: {
+          type: "base64",
+          media_type: "application/pdf",
+          data: toBase64(part.data),
+        },
         title: part.filename,
       }
   }
@@ -93,7 +108,11 @@ const messageSchema = z.object({
   content: z.array(
     z.discriminatedUnion("type", [
       z.object({ type: z.literal("text"), text: z.string() }),
-      z.object({ type: z.literal("tool_use"), name: z.string(), input: z.unknown() }),
+      z.object({
+        type: z.literal("tool_use"),
+        name: z.string(),
+        input: z.unknown(),
+      }),
       z.object({ type: z.literal("thinking") }).loose(),
     ]),
   ),
