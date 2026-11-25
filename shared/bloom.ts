@@ -129,6 +129,9 @@ const LEVEL_KEYS = {
 
 export type BloomLevel<D extends BloomDomain = BloomDomain> = (typeof LEVEL_KEYS)[D][number]
 
+/** Every level key of every domain (keys are unique across domains). */
+export const ALL_LEVEL_KEYS = [...COGNITIVE, ...AFFECTIVE, ...PSYCHOMOTOR] as const
+
 /** A specific level within a specific domain. */
 export type BloomRef = {
   [D in BloomDomain]: { domain: D; level: BloomLevel<D> }

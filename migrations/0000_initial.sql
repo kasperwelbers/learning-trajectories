@@ -170,6 +170,7 @@ CREATE TABLE `link_statements` (
 CREATE TABLE `links` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`analysis_id` integer NOT NULL,
+	`ordinal` integer NOT NULL,
 	`lto_id` integer NOT NULL,
 	`domain` text NOT NULL,
 	`level` text NOT NULL,
@@ -183,7 +184,7 @@ CREATE TABLE `links` (
 	FOREIGN KEY (`pointer_id`) REFERENCES `pointers`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `links_analysis_idx` ON `links` (`analysis_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `links_analysis_ordinal_idx` ON `links` (`analysis_id`,`ordinal`);--> statement-breakpoint
 CREATE INDEX `links_lto_idx` ON `links` (`lto_id`);--> statement-breakpoint
 CREATE TABLE `ltos` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -282,8 +283,10 @@ CREATE TABLE `statements` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`analysis_id` integer NOT NULL,
 	`document_id` integer NOT NULL,
+	`ordinal` integer NOT NULL,
 	`kind` text NOT NULL,
 	`section` text DEFAULT '' NOT NULL,
+	`context` text DEFAULT '' NOT NULL,
 	`quote` text NOT NULL,
 	`page` integer,
 	`verification` text NOT NULL,
@@ -294,7 +297,7 @@ CREATE TABLE `statements` (
 	FOREIGN KEY (`pointer_id`) REFERENCES `pointers`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `statements_analysis_idx` ON `statements` (`analysis_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `statements_analysis_ordinal_idx` ON `statements` (`analysis_id`,`ordinal`);--> statement-breakpoint
 CREATE TABLE `trajectories` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`programme_id` text NOT NULL,

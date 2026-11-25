@@ -314,15 +314,19 @@ export const statements = sqliteTable(
     documentId: integer("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
+    /** Position within the analysis; lets one batch insert links that reference statements. */
+    ordinal: integer("ordinal").notNull(),
     kind: text("kind").$type<StatementKind>().notNull(),
     section: text("section").notNull().default(""),
+    /** Sentence stem the quote continues, e.g. "The student is able to:". */
+    context: text("context").notNull().default(""),
     quote: text("quote").notNull(),
     page: integer("page"),
     verification: text("verification").$type<QuoteVerification>().notNull(),
     assessedBy: text("assessed_by", { mode: "json" }).$type<string[]>().notNull(),
     pointerId: integer("pointer_id").references(() => pointers.id, { onDelete: "cascade" }),
   },
-  (t) => [index("statements_analysis_idx").on(t.analysisId)],
+  (t) => [uniqueIndex("statements_analysis_ordinal_idx").on(t.analysisId, t.ordinal)],
 )
 
 export const assessments = sqliteTable("assessments", {
@@ -360,6 +364,7 @@ export const links = sqliteTable(
     analysisId: integer("analysis_id")
       .notNull()
       .references(() => analyses.id, { onDelete: "cascade" }),
+    ordinal: integer("ordinal").notNull(),
     ltoId: integer("lto_id")
       .notNull()
       .references(() => ltos.id, { onDelete: "cascade" }),
@@ -371,7 +376,10 @@ export const links = sqliteTable(
     origin: text("origin").$type<LinkOrigin>().notNull(),
     pointerId: integer("pointer_id").references(() => pointers.id, { onDelete: "cascade" }),
   },
-  (t) => [index("links_analysis_idx").on(t.analysisId), index("links_lto_idx").on(t.ltoId)],
+  (t) => [
+    uniqueIndex("links_analysis_ordinal_idx").on(t.analysisId, t.ordinal),
+    index("links_lto_idx").on(t.ltoId),
+  ],
 )
 
 export const linkStatements = sqliteTable(

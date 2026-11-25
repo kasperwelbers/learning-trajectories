@@ -30,6 +30,7 @@ export function toStatementDto(row: StatementRow): StatementDto {
     documentId: row.documentId,
     kind: row.kind,
     section: row.section,
+    context: row.context,
     quote: row.quote,
     page: row.page,
     verification: row.verification,

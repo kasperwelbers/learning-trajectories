@@ -343,6 +343,7 @@ export interface StatementDto {
   documentId: number
   kind: StatementKind
   section: string
+  context: string
   quote: string
   page: number | null
   verification: QuoteVerification
@@ -479,6 +480,7 @@ export interface EvidenceStatementDto {
   id: number
   kind: StatementKind
   section: string
+  context: string
   quote: string
   page: number | null
   verification: QuoteVerification

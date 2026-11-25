@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "218f6bd3-4a98-4a97-93d0-6f3942b643c4",
+  "id": "2ac21978-5f72-48f7-877b-74ce9166e122",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "analyses": {
@@ -1234,6 +1234,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "ordinal": {
+          "name": "ordinal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "lto_id": {
           "name": "lto_id",
           "type": "integer",
@@ -1292,12 +1299,13 @@
         }
       },
       "indexes": {
-        "links_analysis_idx": {
-          "name": "links_analysis_idx",
+        "links_analysis_ordinal_idx": {
+          "name": "links_analysis_ordinal_idx",
           "columns": [
-            "analysis_id"
+            "analysis_id",
+            "ordinal"
           ],
-          "isUnique": false
+          "isUnique": true
         },
         "links_lto_idx": {
           "name": "links_lto_idx",
@@ -2042,6 +2050,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "ordinal": {
+          "name": "ordinal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "kind": {
           "name": "kind",
           "type": "text",
@@ -2051,6 +2066,14 @@
         },
         "section": {
           "name": "section",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "context": {
+          "name": "context",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -2094,12 +2117,13 @@
         }
       },
       "indexes": {
-        "statements_analysis_idx": {
-          "name": "statements_analysis_idx",
+        "statements_analysis_ordinal_idx": {
+          "name": "statements_analysis_ordinal_idx",
           "columns": [
-            "analysis_id"
+            "analysis_id",
+            "ordinal"
           ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {

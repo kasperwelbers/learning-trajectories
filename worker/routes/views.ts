@@ -96,6 +96,7 @@ viewRoutes.get("/ltos/:lid/evidence", validate("query", yearQuerySchema), async 
         id: s.id,
         kind: s.kind,
         section: s.section,
+        context: s.context,
         quote: s.quote,
         page: s.page,
         verification: s.verification,
