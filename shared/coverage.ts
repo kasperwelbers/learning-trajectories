@@ -17,6 +17,8 @@ export type CoverageLink = BloomRef & {
   ltoId: number
   tested: boolean
   origin: LinkOrigin
+  /** Whether the evidence includes the public course description (study guide). */
+  inStudyGuide: boolean
 }
 
 export type DomainCoverage<D extends BloomDomain = BloomDomain> = Partial<

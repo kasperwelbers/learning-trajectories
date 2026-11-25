@@ -1,26 +1,22 @@
 import { eq } from "drizzle-orm"
 import { sha256Hex } from "../auth/crypto"
 import type { Db } from "../db/client"
-import { documents, ltos, trajectories } from "../db/schema"
+import { documents } from "../db/schema"
+import type { LinkingLto } from "../pipeline/link"
+import { ltosForLinking } from "./linkingInput"
 
-/**
- * Fingerprint of everything the linking step depends on: LTO wording and narratives, and the
- * trajectory narratives they are read in. When it changes, existing links are stale.
- */
-export async function currentLtoHash(db: Db, programmeId: string): Promise<string> {
-  const [ltoRows, trajectoryRows] = await Promise.all([
-    db
-      .select({ id: ltos.id, code: ltos.code, title: ltos.title, narrative: ltos.narrative, trajectoryId: ltos.trajectoryId })
-      .from(ltos)
-      .where(eq(ltos.programmeId, programmeId)),
-    db
-      .select({ id: trajectories.id, name: trajectories.name, narrative: trajectories.narrative })
-      .from(trajectories)
-      .where(eq(trajectories.programmeId, programmeId)),
-  ])
-  ltoRows.sort((a, b) => a.id - b.id)
-  trajectoryRows.sort((a, b) => a.id - b.id)
-  return sha256Hex(JSON.stringify([ltoRows, trajectoryRows]))
+/** Fingerprint of everything the linking prompt reads about one LTO. */
+export function ltoHash(lto: LinkingLto): Promise<string> {
+  return sha256Hex(
+    JSON.stringify([lto.code, lto.title, lto.narrative, lto.trajectory.name, lto.trajectory.narrative]),
+  )
+}
+
+/** Current fingerprint per LTO id. */
+export async function ltoHashes(db: Db, programmeId: string): Promise<Map<number, string>> {
+  const ltos = await ltosForLinking(db, programmeId)
+  const entries = await Promise.all(ltos.map(async (lto) => [lto.id, await ltoHash(lto)] as const))
+  return new Map(entries)
 }
 
 export function documentsHashOf(shas: readonly string[]): Promise<string> {

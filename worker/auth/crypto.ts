@@ -16,8 +16,10 @@ export function randomCode(): string {
 }
 
 export async function sha256Hex(data: string | ArrayBuffer | Uint8Array): Promise<string> {
-  const bytes: BufferSource =
-    typeof data === "string" ? new TextEncoder().encode(data) : data
+  const source = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data)
+  // Copy into a fresh ArrayBuffer-backed view (digest does not accept shared buffers).
+  const bytes = new Uint8Array(source.byteLength)
+  bytes.set(source)
   const digest = await crypto.subtle.digest("SHA-256", bytes)
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("")
 }

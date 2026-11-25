@@ -2,7 +2,7 @@ import { z } from "zod"
 import { ALL_LEVEL_KEYS, BLOOM_DOMAINS, parseBloomRef, type BloomRef } from "@shared/bloom"
 import { STATEMENT_KINDS, type StatementKind } from "@shared/evidence"
 import type { ContentPart, LlmClient } from "../ai/types"
-import { LINKING_SYSTEM_PROMPT, stripMarkdownImages, type LinkingLto } from "./link"
+import { LINKING_SYSTEM_PROMPT, ltoText, type LinkingLto } from "./link"
 
 /**
  * "Point and judge": a course coordinator points at a passage they believe supports an LTO.
@@ -35,7 +35,7 @@ export interface Judgement {
 
 const JUDGE_INSTRUCTIONS = `${LINKING_SYSTEM_PROMPT}
 
-In this task you judge a single passage that a course coordinator pointed at, because they believe it shows the course contributes to one specific LTO. The full course document is attached for context. Apply exactly the same rules as above:
+In this task you judge a single passage that a course coordinator pointed at, because they believe it shows the course contributes to the LTO. The full course document is attached for context. Apply exactly the same rules as above:
 - "kind": what kind of statement the passage is (learning_goal, activity or assessment), judged from where it appears in the document.
 - "section": the heading of the section the passage appears in.
 - "supported": true only if the passage itself provides evidence for the LTO. Do not be swayed by the fact that someone pointed at it.
@@ -52,11 +52,8 @@ export async function judgePassage(
   },
 ): Promise<{ judgement: Judgement; model: string }> {
   const { lto, passage, document } = input
-  const ltoText = `LTO ${lto.code} (trajectory "${lto.trajectory.name}"): ${lto.title}${
-    lto.narrative.trim() ? `\n${stripMarkdownImages(lto.narrative)}` : ""
-  }`
   const content: ContentPart[] = [
-    { type: "text", text: `# LTO\n${ltoText}\n\n# Passage the coordinator pointed at\n${passage}\n\n# Course document: ${document.filename}` },
+    { type: "text", text: `${ltoText(lto)}\n\n# Passage the coordinator pointed at\n${passage}\n\n# Course document: ${document.filename}` },
     document.content.type === "pdf"
       ? { type: "pdf", data: document.content.data, filename: document.filename }
       : { type: "text", text: document.content.text },

@@ -80,6 +80,7 @@ programmeRoutes.get("/", async (c) => {
     description: programme.description,
     currentYear: programme.currentYear,
     years: sortAcademicYears([programme.currentYear, ...years.map((y) => y.year)]),
+    studyGuideUrlTemplate: programme.studyGuideUrlTemplate,
     version: programme.version,
     access: c.get("access"),
   }

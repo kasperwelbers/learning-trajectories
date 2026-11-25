@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { STATEMENT_KINDS, type DocumentKind } from "@shared/evidence"
+import { DOCUMENT_KIND_LABELS, STATEMENT_KINDS, type DocumentKind } from "@shared/evidence"
 import { describeFieldType, fieldsObjectSchema, type FieldDefinition } from "@shared/fields"
 import type { ContentPart, LlmClient } from "../ai/types"
 
@@ -9,7 +9,7 @@ import type { ContentPart, LlmClient } from "../ai/types"
  */
 
 /** Bump when prompts or schemas change, so cached extractions are redone. */
-export const EXTRACTION_PROMPT_VERSION = "extract-v2"
+export const EXTRACTION_PROMPT_VERSION = "extract-v3"
 
 const page = z.number().int().nullable()
 
@@ -59,8 +59,10 @@ export const supplementaryExtractionSchema = z.object({
 
 export type ManualExtraction = z.infer<ReturnType<typeof manualExtractionSchema>>
 export type SupplementaryExtraction = z.infer<typeof supplementaryExtractionSchema>
+/** Course descriptions (manual, study guide) carry metadata fields; other material does not. */
+export type DescriptionKind = "manual" | "study_guide"
 export type DocumentExtraction =
-  | ({ kind: "manual" } & ManualExtraction)
+  | ({ kind: DescriptionKind } & ManualExtraction)
   | ({ kind: "supplementary" } & SupplementaryExtraction)
 export type ExtractedStatement = z.infer<typeof statementSchema>
 
@@ -82,11 +84,18 @@ Assessments ("assessments"): every graded or required assessment component, with
 
 Rubrics ("rubrics"): if the document contains assessment rubrics or grading criteria tables, extract them with their criteria and performance levels. Otherwise return an empty list.`
 
-export function manualSystemPrompt(fields: readonly FieldDefinition[]): string {
+const DESCRIPTION_INTRO: Record<DescriptionKind, string> = {
+  manual:
+    "You extract structured information from a university course manual, for a quality-assurance tool. Course coordinators use your output to check whether their manual is clear and complete, so accuracy matters more than completeness.",
+  study_guide:
+    "You extract structured information from the public description of a university course in the online study guide, for a quality-assurance tool. Accuracy matters more than completeness.",
+}
+
+export function descriptionSystemPrompt(kind: DescriptionKind, fields: readonly FieldDefinition[]): string {
   const fieldList = fields
     .map((f) => `- ${f.key} (${describeFieldType(f.type)}): ${f.prompt}`)
     .join("\n")
-  return `You extract structured information from a university course manual, for a quality-assurance tool. Course coordinators use your output to check whether their manual is clear and complete, so accuracy matters more than completeness.
+  return `${DESCRIPTION_INTRO[kind]}
 
 ${QUOTE_RULES}
 
@@ -120,7 +129,7 @@ export interface ExtractionInput {
 function documentParts(input: ExtractionInput): ContentPart[] {
   const intro: ContentPart = {
     type: "text",
-    text: `Document: ${input.filename} (${input.kind === "manual" ? "course manual" : "supplementary material"}).`,
+    text: `Document: ${input.filename} (${DOCUMENT_KIND_LABELS[input.kind].toLowerCase()}).`,
   }
   if (input.content.type === "pdf") {
     return [intro, { type: "pdf", data: input.content.data, filename: input.filename }]
@@ -133,15 +142,16 @@ export async function extractDocument(
   input: ExtractionInput,
 ): Promise<{ extraction: DocumentExtraction; model: string }> {
   const content = documentParts(input)
-  if (input.kind === "manual") {
+  const kind = input.kind
+  if (kind === "manual" || kind === "study_guide") {
     const result = await client.generate({
       model: input.model,
-      system: manualSystemPrompt(input.fields),
+      system: descriptionSystemPrompt(kind, input.fields),
       content,
       schema: manualExtractionSchema(input.fields),
-      schemaName: "course_manual_extraction",
+      schemaName: "course_description_extraction",
     })
-    return { extraction: { kind: "manual", ...result.data }, model: result.model }
+    return { extraction: { kind, ...result.data }, model: result.model }
   }
   const result = await client.generate({
     model: input.model,
@@ -158,8 +168,10 @@ export function parseCachedExtraction(
   value: unknown,
   fields: readonly FieldDefinition[],
 ): DocumentExtraction | null {
-  const manual = manualExtractionSchema(fields).extend({ kind: z.literal("manual") }).safeParse(value)
-  if (manual.success) return manual.data
+  const description = manualExtractionSchema(fields)
+    .extend({ kind: z.enum(["manual", "study_guide"]) })
+    .safeParse(value)
+  if (description.success) return description.data
   const supplementary = supplementaryExtractionSchema
     .extend({ kind: z.literal("supplementary") })
     .safeParse(value)

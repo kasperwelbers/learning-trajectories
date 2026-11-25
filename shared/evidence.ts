@@ -15,9 +15,20 @@ export const STATEMENT_KIND_LABELS: Record<StatementKind, string> = {
 export const LINK_ORIGINS = ["ai", "pointer"] as const
 export type LinkOrigin = (typeof LINK_ORIGINS)[number]
 
-export const DOCUMENT_KINDS = ["manual", "supplementary"] as const
+/**
+ * - study_guide: the public course description (e.g. the online study guide), usually fetched by URL
+ * - manual: the course manual, the source of truth for metadata and the manual health check
+ * - supplementary: other course material (rubrics, assignment instructions)
+ */
+export const DOCUMENT_KINDS = ["study_guide", "manual", "supplementary"] as const
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number]
 export const documentKindSchema = z.enum(DOCUMENT_KINDS)
+
+export const DOCUMENT_KIND_LABELS: Record<DocumentKind, string> = {
+  study_guide: "Study guide",
+  manual: "Course manual",
+  supplementary: "Supplementary material",
+}
 
 export const QUOTE_VERIFICATIONS = ["verified", "approximate", "unverified"] as const
 export type QuoteVerification = (typeof QUOTE_VERIFICATIONS)[number]

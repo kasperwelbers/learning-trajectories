@@ -64,10 +64,18 @@ export interface MeResponse {
 // ── Programmes ──────────────────────────────────────────────────────────────
 
 export const createProgrammeBody = z.object({ name, currentYear: academicYearSchema })
+/** Placeholders {code} and {year} are filled in per course, e.g. https://studiegids.vu.nl/en/courses/{year}/{code} */
+const urlTemplate = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((v) => v === "" || (/^https?:\/\//.test(v) && v.includes("{code}")), "Use an http(s) URL containing {code}")
+
 export const updateProgrammeBody = z.object({
   name: name.optional(),
   description: markdown.optional(),
   currentYear: academicYearSchema.optional(),
+  studyGuideUrlTemplate: urlTemplate.optional(),
   version,
 })
 
@@ -85,6 +93,7 @@ export interface ProgrammeDto {
   currentYear: string
   /** Years with at least one uploaded document, plus the current year; newest first. */
   years: string[]
+  studyGuideUrlTemplate: string
   version: number
   access: ProgrammeAccess
 }
@@ -161,6 +170,8 @@ export interface LtoDto {
   narrative: string
   position: number
   version: number
+  /** A re-link of this LTO is scheduled or running. */
+  relinkPending: boolean
 }
 
 export interface TrajectoryDto {
@@ -256,10 +267,19 @@ export interface FieldDto extends FieldDefinition {
 
 const courseCode = z.string().trim().min(1).max(40)
 
-export const createCourseBody = z.object({ code: courseCode, name })
-export const updateCourseBody = z.object({ code: courseCode.optional(), name: name.optional() })
+const programmeYear = z.number().int().min(1).max(10).nullable()
+
+export const createCourseBody = z.object({ code: courseCode, name, programmeYear: programmeYear.optional() })
+export const updateCourseBody = z.object({
+  code: courseCode.optional(),
+  name: name.optional(),
+  programmeYear: programmeYear.optional(),
+})
 export const bulkCreateCoursesBody = z.object({
-  courses: z.array(z.object({ code: courseCode, name })).min(1).max(300),
+  courses: z
+    .array(z.object({ code: courseCode, name, programmeYear: programmeYear.optional() }))
+    .min(1)
+    .max(300),
 })
 
 export const importPreviewBody = z.object({
@@ -272,6 +292,12 @@ export interface ProposedCourseDto {
   periods: number[]
   ec: number | null
   level: number | null
+  /** Programme year (1, 2, 3, ...) if the source says so. */
+  programmeYear: number | null
+  /** Part of the curriculum the course is listed under, e.g. "Second year" or "Minor". */
+  group: string
+  /** Whether the source suggests this is a regular course of the programme (not a minor/elective). */
+  suggested: boolean
   url: string | null
   exists: boolean
 }
@@ -294,6 +320,7 @@ export interface CourseFactsDto {
   id: number
   code: string
   name: string
+  programmeYear: number | null
   /** Year of the analysis these facts come from (may be older than the selected year). */
   analysisYear: string | null
   periods: number[]
@@ -305,6 +332,7 @@ export interface CourseSummaryDto extends CourseFactsDto {
   status: AnalysisStatus | null
   step: AnalysisStep | null
   hasManual: boolean
+  hasStudyGuide: boolean
   health: ManualHealth | null
   stale: boolean
   linkCount: number
@@ -323,6 +351,8 @@ export interface DocumentDto {
   filename: string
   mimeType: string
   size: number
+  /** Where a fetched document (e.g. a study guide page) came from. */
+  sourceUrl: string | null
   uploadedAt: number
   uploadedBy: string | null
 }
@@ -336,6 +366,8 @@ export interface MetadataValueDto {
   quote: string
   page: number | null
   verification: QuoteVerification
+  /** Document the value was taken from (manual preferred, study guide as fallback). */
+  source: DocumentKind | null
 }
 
 export interface StatementDto {
@@ -383,8 +415,12 @@ export type LinkDto = BloomRef & {
   confidence: number
   origin: LinkOrigin
   tested: boolean
+  /** Kinds of documents the cited evidence comes from. */
+  sources: DocumentKind[]
   statementIds: number[]
   pointerId: number | null
+  /** The LTO changed since this link was made; a re-link is pending. */
+  stale: boolean
 }
 
 export interface AnalysisDto {
@@ -433,7 +469,7 @@ export interface PointerDto {
 }
 
 export interface CourseDetailResponse {
-  course: { id: number; code: string; name: string }
+  course: { id: number; code: string; name: string; programmeYear: number | null }
   year: string
   /** Years for which this course has documents, newest first. */
   documentYears: string[]
@@ -444,6 +480,13 @@ export interface CourseDetailResponse {
 }
 
 export const analyzeBody = z.object({ year: academicYearSchema })
+
+export const fetchStudyGuideBody = z.object({ year: academicYearSchema, url: z.url() })
+
+export interface FetchStudyGuidesResponse {
+  fetched: number
+  failed: { code: string; error: string }[]
+}
 
 export const createDisputeBody = z.object({
   year: academicYearSchema,
@@ -463,7 +506,8 @@ export const createPointerBody = z.object({
 })
 
 export interface RelinkResponse {
-  started: number
+  analysesStarted: number
+  ltosRelinked: number
 }
 
 // ── Coverage & views ────────────────────────────────────────────────────────
@@ -493,6 +537,7 @@ export interface EvidenceLinkDto {
   confidence: number
   origin: LinkOrigin
   tested: boolean
+  sources: DocumentKind[]
   statements: EvidenceStatementDto[]
 }
 

@@ -14,7 +14,15 @@ const link = (
   ltoId: number,
   level: "apply" | "evaluate",
   tested: boolean,
-): CoverageLink => ({ courseId, ltoId, domain: "cognitive", level, tested, origin: "ai" })
+): CoverageLink => ({
+  courseId,
+  ltoId,
+  domain: "cognitive",
+  level,
+  tested,
+  origin: "ai",
+  inStudyGuide: false,
+})
 
 describe("coverage", () => {
   it("prefers tested over taught", () => {

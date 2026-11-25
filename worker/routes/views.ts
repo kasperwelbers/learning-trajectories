@@ -44,7 +44,16 @@ viewRoutes.get("/coverage", validate("query", yearQuerySchema), async (c) => {
   const coverage: CoverageLink[] = linkDtos.flatMap((link) => {
     const courseId = courseByAnalysis.get(analysisOfLink.get(link.id) ?? -1)
     if (courseId === undefined) return []
-    return [{ ...refOf(link), courseId, ltoId: link.ltoId, tested: link.tested, origin: link.origin }]
+    return [
+      {
+        ...refOf(link),
+        courseId,
+        ltoId: link.ltoId,
+        tested: link.tested,
+        origin: link.origin,
+        inStudyGuide: link.sources.includes("study_guide"),
+      },
+    ]
   })
   const effectiveYear = new Map(items.map((i) => [i.course.id, i.effective?.year]))
   const disputedPairs = [
@@ -124,6 +133,7 @@ viewRoutes.get("/ltos/:lid/evidence", validate("query", yearQuerySchema), async 
         confidence: link.confidence,
         origin: link.origin,
         tested: link.tested,
+        sources: link.sources,
         statements: link.statementIds.flatMap((id) => {
           const s = statementById.get(id)
           return s ? [s] : []

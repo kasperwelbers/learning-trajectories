@@ -15,6 +15,7 @@ import { requireAdmin, requireTrajectoryEditor } from "../access"
 import type { ProgrammeEnv } from "../context"
 import type { Db } from "../db/client"
 import { assertVersionedUpdate, isUniqueViolation } from "../db/helpers"
+import { relinkLtos } from "../services/analysisRunner"
 import { ltos, trajectories } from "../db/schema"
 import { HttpError, found } from "../errors"
 import { intParam, validate } from "../validation"
@@ -34,6 +35,7 @@ export function toLtoDto(row: LtoRow): LtoDto {
     narrative: row.narrative,
     position: row.position,
     version: row.version,
+    relinkPending: row.relinkWorkflowId !== null,
   }
 }
 
@@ -115,6 +117,7 @@ structureRoutes.patch("/trajectories/:tid", validate("json", updateTrajectoryBod
   const id = intParam(c.req.param("tid"))
   requireTrajectoryEditor(c, id)
   const { version, ...changes } = c.req.valid("json")
+  const affectsLinking = changes.name !== undefined || changes.narrative !== undefined
   try {
     const result = await db
       .update(trajectories)
@@ -132,7 +135,12 @@ structureRoutes.patch("/trajectories/:tid", validate("json", updateTrajectoryBod
     if (isUniqueViolation(error)) throw duplicateName()
     throw error
   }
-  notify(c, "structure")
+  if (affectsLinking) {
+    // LTOs are linked in the context of their trajectory's narrative.
+    const ltoIds = await db.select({ id: ltos.id }).from(ltos).where(eq(ltos.trajectoryId, id))
+    await relinkLtos(c.env, db, programmeId, ltoIds.map((l) => l.id))
+  }
+  notify(c, "structure", "courses")
   return c.json({ ok: true })
 })
 
@@ -177,6 +185,7 @@ structureRoutes.post("/trajectories/:tid/ltos", validate("json", createLtoBody),
       .values({ ...body, programmeId, trajectoryId, position: (last?.value ?? -1) + 1 })
       .returning({ id: ltos.id })
       .get()
+    await relinkLtos(c.env, db, programmeId, [row.id])
     notify(c, "structure", "courses")
     return c.json({ id: row.id }, 201)
   } catch (error) {
@@ -207,10 +216,12 @@ structureRoutes.patch("/ltos/:lid", validate("json", updateLtoBody), async (c) =
     if (isUniqueViolation(error)) throw duplicateCode()
     throw error
   }
-  // Changing what an LTO means makes existing links stale.
-  const affectsLinking = changes.title !== undefined || changes.narrative !== undefined || changes.code !== undefined
-  if (affectsLinking) notify(c, "structure", "courses")
-  else notify(c, "structure")
+  // Changing what an LTO means makes its links stale: re-link it after a short pause for further edits.
+  const movedTrajectory = changes.trajectoryId !== undefined && changes.trajectoryId !== current.trajectoryId
+  const affectsLinking =
+    changes.title !== undefined || changes.narrative !== undefined || changes.code !== undefined || movedTrajectory
+  if (affectsLinking) await relinkLtos(c.env, db, programmeId, [id])
+  notify(c, "structure", "courses")
   return c.json({ ok: true })
 })
 
@@ -236,6 +247,7 @@ structureRoutes.post("/ltos/import", validate("json", importLtosBody), async (c)
     structure.trajectories.flatMap((t) => t.ltos).map((l) => [l.code, l]),
   )
   const result: ImportLtosResponse = { trajectoriesCreated: 0, ltosCreated: 0, ltosUpdated: 0 }
+  const touched: number[] = []
   let trajectoryPosition = structure.trajectories.length
   const ltoPositions = new Map(structure.trajectories.map((t) => [t.id, t.ltos.length]))
 
@@ -257,6 +269,7 @@ structureRoutes.post("/ltos/import", validate("json", importLtosBody), async (c)
         .update(ltos)
         .set({ title: row.title, trajectoryId, version: sql`${ltos.version} + 1` })
         .where(eq(ltos.id, existing.id))
+      touched.push(existing.id)
       result.ltosUpdated++
     } else {
       const position = ltoPositions.get(trajectoryId) ?? 0
@@ -267,9 +280,11 @@ structureRoutes.post("/ltos/import", validate("json", importLtosBody), async (c)
         .returning()
         .get()
       existingLtos.set(row.code, toLtoDto(created))
+      touched.push(created.id)
       result.ltosCreated++
     }
   }
+  await relinkLtos(c.env, db, programmeId, touched)
   notify(c, "structure", "courses")
   return c.json(result)
 })

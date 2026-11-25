@@ -1,7 +1,7 @@
 import { and, eq, sql, type SQL } from "drizzle-orm"
 import type { BatchItem } from "drizzle-orm/batch"
 import type { BloomRef } from "@shared/bloom"
-import type { LinkOrigin, QuoteVerification, StatementKind } from "@shared/evidence"
+import type { DocumentKind, LinkOrigin, QuoteVerification, StatementKind } from "@shared/evidence"
 import type { FieldStatus, FieldValue } from "@shared/fields"
 import type { RubricCriterion } from "@shared/api"
 import type { Db } from "../db/client"
@@ -9,6 +9,7 @@ import {
   analyses,
   analysisFields,
   assessments,
+  linkRuns,
   links,
   pointers,
   rubrics,
@@ -28,6 +29,7 @@ export interface StoredField {
   quote: string
   page: number | null
   verification: QuoteVerification
+  source: DocumentKind | null
 }
 
 export interface StoredStatement {
@@ -67,6 +69,7 @@ export interface StoredLink {
   confidence: number
   tested: boolean
   origin: LinkOrigin
+  sources: DocumentKind[]
   pointerId: number | null
   statementOrdinals: number[]
 }
@@ -79,7 +82,11 @@ export interface AnalysisResults {
   links: StoredLink[]
 }
 
-/** Ordinals of pointer-derived rows live far above those of extracted rows. */
+/**
+ * Link ordinals encode the LTO, so the links of one LTO can be replaced on their own.
+ * Ordinals of pointer-derived rows live far above those of extracted rows.
+ */
+export const aiLinkOrdinal = (ltoId: number, index: number) => ltoId * 1000 + index
 const POINTER_ORDINAL_BASE = 1_000_000_000
 export const pointerStatementOrdinal = (pointerId: number) => POINTER_ORDINAL_BASE + pointerId
 export const pointerLinkOrdinal = (pointerId: number, index: number) =>
@@ -104,7 +111,7 @@ function insertStatements(db: Db, analysisId: number, rows: readonly StoredState
 }
 
 function insertLinks(db: Db, analysisId: number, rows: readonly StoredLink[]): BatchItem<"sqlite">[] {
-  const items: BatchItem<"sqlite">[] = chunk(rows, 11).map((part) =>
+  const items: BatchItem<"sqlite">[] = chunk(rows, 12).map((part) =>
     db.insert(links).values(
       part.map((l) => ({
         analysisId,
@@ -116,6 +123,7 @@ function insertLinks(db: Db, analysisId: number, rows: readonly StoredLink[]): B
         confidence: l.confidence,
         tested: l.tested,
         origin: l.origin,
+        sources: l.sources,
         pointerId: l.pointerId,
       })),
     ),
@@ -136,11 +144,29 @@ function insertLinks(db: Db, analysisId: number, rows: readonly StoredLink[]): B
   return items
 }
 
+export interface LinkRun {
+  ltoId: number
+  ltoHash: string
+}
+
+function upsertLinkRuns(db: Db, analysisId: number, runs: readonly LinkRun[]): BatchItem<"sqlite">[] {
+  const linkedAt = Date.now()
+  return chunk(runs, 4).map((part) =>
+    db
+      .insert(linkRuns)
+      .values(part.map((r) => ({ analysisId, ltoId: r.ltoId, ltoHash: r.ltoHash, linkedAt })))
+      .onConflictDoUpdate({
+        target: [linkRuns.analysisId, linkRuns.ltoId],
+        set: { ltoHash: sql`excluded.lto_hash`, linkedAt: sql`excluded.linked_at` },
+      }),
+  )
+}
+
 export async function saveAnalysisResults(
   db: Db,
   analysisId: number,
   results: AnalysisResults,
-  meta: { ltoHash: string; documentsHash: string; model: string },
+  meta: { runs: LinkRun[]; documentsHash: string; model: string },
   pointerUpdates: { pointerId: number; status: "supported" | "not_supported" | "failed"; verdict: string }[],
 ): Promise<void> {
   const batch: Batch = [
@@ -149,6 +175,7 @@ export async function saveAnalysisResults(
     db.delete(statements).where(eq(statements.analysisId, analysisId)),
     db.delete(assessments).where(eq(assessments.analysisId, analysisId)),
     db.delete(rubrics).where(eq(rubrics.analysisId, analysisId)),
+    db.delete(linkRuns).where(eq(linkRuns.analysisId, analysisId)),
     ...chunk(results.fields, 7).map((part) =>
       db.insert(analysisFields).values(part.map((f) => ({ ...f, analysisId }))),
     ),
@@ -160,6 +187,7 @@ export async function saveAnalysisResults(
       db.insert(rubrics).values(part.map((r) => ({ ...r, analysisId }))),
     ),
     ...insertLinks(db, analysisId, results.links),
+    ...upsertLinkRuns(db, analysisId, meta.runs),
     ...pointerUpdates.map((p) =>
       db.update(pointers).set({ status: p.status, verdict: p.verdict }).where(eq(pointers.id, p.pointerId)),
     ),
@@ -171,13 +199,29 @@ export async function saveAnalysisResults(
         error: null,
         hasResults: true,
         finishedAt: Date.now(),
-        ltoHash: meta.ltoHash,
         documentsHash: meta.documentsHash,
         model: meta.model,
       })
       .where(eq(analyses.id, analysisId)),
   ]
   await db.batch(batch)
+}
+
+/** Replace the AI links of one LTO in several analyses (after the LTO was edited). */
+export async function saveLtoRelink(
+  db: Db,
+  run: LinkRun,
+  perAnalysis: readonly { analysisId: number; links: StoredLink[] }[],
+): Promise<void> {
+  const items: BatchItem<"sqlite">[] = perAnalysis.flatMap(({ analysisId, links: rows }) => [
+    db
+      .delete(links)
+      .where(and(eq(links.analysisId, analysisId), eq(links.ltoId, run.ltoId), eq(links.origin, "ai"))),
+    ...insertLinks(db, analysisId, rows),
+    ...upsertLinkRuns(db, analysisId, [run]),
+  ])
+  const [first, ...rest] = items
+  if (first) await db.batch([first, ...rest])
 }
 
 /** Replace the links and statement created from one pointer. */

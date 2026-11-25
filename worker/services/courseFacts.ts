@@ -72,6 +72,7 @@ export async function courseFacts(
       id: course.id,
       code: course.code,
       name: course.name,
+      programmeYear: course.programmeYear,
       analysisYear: effective?.year ?? null,
       periods: numberList(get("periods")),
       level: numberOrNull(get("level")),

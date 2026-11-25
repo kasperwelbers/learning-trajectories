@@ -4,6 +4,7 @@ import { z } from "zod"
 import {
   analyzeBody,
   bulkCreateCoursesBody,
+  fetchStudyGuideBody,
   createCourseBody,
   importPreviewBody,
   updateCourseBody,
@@ -12,6 +13,7 @@ import {
   type CourseSummaryDto,
   type CoursesResponse,
   type DocumentDto,
+  type FetchStudyGuidesResponse,
   type ManualHealth,
   type RelinkResponse,
 } from "@shared/api"
@@ -24,11 +26,12 @@ import type { ProgrammeEnv } from "../context"
 import type { Db } from "../db/client"
 import { inChunks } from "../db/batching"
 import { isUniqueViolation } from "../db/helpers"
-import { analyses, analysisFields, courses, disputes, documents, links, pointers } from "../db/schema"
+import { analyses, analysisFields, courses, disputes, documents, links, pointers, programmes } from "../db/schema"
 import { HttpError, found, invalid } from "../errors"
 import { proposeCoursesFromUrls } from "../pipeline/importCourses"
 import { loadAnalysisDto } from "../services/analysisDetail"
-import { startAnalysis } from "../services/analysisRunner"
+import { startAnalysis, startLtoRelink } from "../services/analysisRunner"
+import { saveStudyGuide, studyGuideUrl } from "../services/studyGuide"
 import { courseFacts, coursesWithAnalyses } from "../services/courseFacts"
 import {
   DOCUMENT_TYPES,
@@ -36,7 +39,7 @@ import {
   documentKey,
   documentMimeType,
 } from "../services/files"
-import { currentLtoHash, documentsHashes } from "../services/hashes"
+import { loadStaleness } from "../services/staleness"
 import { intParam, validate } from "../validation"
 import { loadFields } from "./frameworks"
 import { notify } from "./notify"
@@ -66,22 +69,10 @@ function toDocumentDto(row: DocumentRow): DocumentDto {
     filename: row.filename,
     mimeType: row.mimeType,
     size: row.size,
+    sourceUrl: row.sourceUrl,
     uploadedAt: row.uploadedAt,
     uploadedBy: row.uploadedBy,
   }
-}
-
-/** Whether an analysis' results no longer match the current LTOs or documents. */
-function isStale(
-  analysis: { ltoHash: string | null; documentsHash: string | null; courseId: number; year: string; hasResults: boolean },
-  ltoHash: string,
-  docHashes: Map<string, string>,
-): boolean {
-  if (!analysis.hasResults) return false
-  return (
-    analysis.ltoHash !== ltoHash ||
-    analysis.documentsHash !== (docHashes.get(`${analysis.courseId}|${analysis.year}`) ?? null)
-  )
 }
 
 // ── List & create ───────────────────────────────────────────────────────────
@@ -91,26 +82,36 @@ courseRoutes.get("/courses", validate("query", yearQuerySchema), async (c) => {
   const programmeId = c.get("programmeId")
   const { year } = c.req.valid("query")
   const items = await coursesWithAnalyses(db, programmeId, year)
-  const [facts, fields, ltoHash, docHashes, manualRows, disputeRows] = await Promise.all([
+  const effectiveIds = items.flatMap((i) => (i.effective ? [i.effective.id] : []))
+  const [facts, fields, staleness, descriptionRows, disputeRows] = await Promise.all([
     courseFacts(db, items),
     loadFields(db, programmeId),
-    currentLtoHash(db, programmeId),
-    documentsHashes(db, programmeId),
+    loadStaleness(db, programmeId, effectiveIds),
     db
-      .select({ courseId: documents.courseId })
+      .select({ courseId: documents.courseId, kind: documents.kind })
       .from(documents)
-      .where(and(eq(documents.programmeId, programmeId), eq(documents.year, year), eq(documents.kind, "manual"))),
+      .where(
+        and(
+          eq(documents.programmeId, programmeId),
+          eq(documents.year, year),
+          inArray(documents.kind, ["manual", "study_guide"]),
+        ),
+      ),
     db
       .select({ courseId: disputes.courseId, n: sql<number>`count(*)` })
       .from(disputes)
       .where(and(eq(disputes.programmeId, programmeId), eq(disputes.status, "open")))
       .groupBy(disputes.courseId),
   ])
-  const effectiveIds = items.flatMap((i) => (i.effective ? [i.effective.id] : []))
   const [fieldRows, linkCounts] = await Promise.all([
     inChunks(effectiveIds, (chunk) =>
       db
-        .select({ analysisId: analysisFields.analysisId, key: analysisFields.key, status: analysisFields.status })
+        .select({
+          analysisId: analysisFields.analysisId,
+          key: analysisFields.key,
+          status: analysisFields.status,
+          source: analysisFields.source,
+        })
         .from(analysisFields)
         .where(inArray(analysisFields.analysisId, chunk)),
     ),
@@ -122,16 +123,19 @@ courseRoutes.get("/courses", validate("query", yearQuerySchema), async (c) => {
         .groupBy(links.analysisId),
     ),
   ])
-  const hasManual = new Set(manualRows.map((r) => r.courseId))
+  const hasManual = new Set(descriptionRows.filter((r) => r.kind === "manual").map((r) => r.courseId))
+  const hasStudyGuide = new Set(descriptionRows.filter((r) => r.kind === "study_guide").map((r) => r.courseId))
   const openDisputes = new Map(disputeRows.map((r) => [r.courseId, r.n]))
   const linkCount = new Map(linkCounts.map((r) => [r.analysisId, r.n]))
 
   const result: CourseSummaryDto[] = items.map((item, i) => {
     const { effective, current } = item
     let health: ManualHealth | null = null
-    if (effective) {
+    const effectiveFields = effective ? fieldRows.filter((r) => r.analysisId === effective.id) : []
+    // Health is about the manual: values that only the study guide provided count as missing.
+    if (effectiveFields.some((r) => r.source === "manual")) {
       const statuses = new Map(
-        fieldRows.filter((r) => r.analysisId === effective.id).map((r) => [r.key, r.status]),
+        effectiveFields.map((r) => [r.key, r.source === "manual" ? r.status : ("missing" as const)]),
       )
       health = { found: 0, unclear: 0, missing: 0, requiredProblems: [] }
       for (const field of fields) {
@@ -147,8 +151,9 @@ courseRoutes.get("/courses", validate("query", yearQuerySchema), async (c) => {
       status: current?.status ?? null,
       step: current?.step ?? null,
       hasManual: hasManual.has(item.course.id),
+      hasStudyGuide: hasStudyGuide.has(item.course.id),
       health,
-      stale: effective ? isStale(effective, ltoHash, docHashes) : false,
+      stale: effective ? staleness.isStale(effective) : false,
       linkCount: effective ? (linkCount.get(effective.id) ?? 0) : 0,
       openDisputes: openDisputes.get(item.course.id) ?? 0,
     }
@@ -237,7 +242,7 @@ courseRoutes.get("/courses/:cid", validate("query", yearQuerySchema), async (c) 
   const programmeId = c.get("programmeId")
   const { year } = c.req.valid("query")
   const course = await getCourse(db, programmeId, intParam(c.req.param("cid")))
-  const [docRows, analysis, disputeRows, pointerRows, fields, ltoHash, docHashes] = await Promise.all([
+  const [docRows, analysis, disputeRows, pointerRows, fields] = await Promise.all([
     db.select().from(documents).where(eq(documents.courseId, course.id)).orderBy(desc(documents.uploadedAt)),
     db
       .select()
@@ -247,16 +252,15 @@ courseRoutes.get("/courses/:cid", validate("query", yearQuerySchema), async (c) 
     db.select().from(disputes).where(and(eq(disputes.courseId, course.id), eq(disputes.year, year))).orderBy(desc(disputes.createdAt)),
     db.select().from(pointers).where(and(eq(pointers.courseId, course.id), eq(pointers.year, year))).orderBy(desc(pointers.createdAt)),
     loadFields(db, programmeId),
-    currentLtoHash(db, programmeId),
-    documentsHashes(db, programmeId),
   ])
+  const staleness = await loadStaleness(db, programmeId, analysis ? [analysis.id] : [])
   const response: CourseDetailResponse = {
-    course: { id: course.id, code: course.code, name: course.name },
+    course: { id: course.id, code: course.code, name: course.name, programmeYear: course.programmeYear },
     year,
     documentYears: sortAcademicYears(docRows.map((d) => d.year)),
     documents: docRows.filter((d) => d.year === year).map(toDocumentDto),
     analysis: analysis
-      ? await loadAnalysisDto(db, analysis, fields, isStale(analysis, ltoHash, docHashes))
+      ? await loadAnalysisDto(db, analysis, fields, staleness)
       : null,
     disputes: disputeRows.flatMap(toDisputeDto),
     pointers: pointerRows.map(toPointerDto),
@@ -291,13 +295,14 @@ courseRoutes.post("/courses/:cid/documents", async (c) => {
   const key = documentKey(programmeId, course.id, file.name)
   await c.env.FILES.put(key, bytes, { httpMetadata: { contentType: mimeType } })
 
-  // A course has one manual per year: replace the previous one.
+  // A course has one manual and one study guide per year: replace the previous one.
+  const singular = kind === "manual" || kind === "study_guide"
   const replaced =
-    kind === "manual"
+    singular
       ? await db
           .select()
           .from(documents)
-          .where(and(eq(documents.courseId, course.id), eq(documents.year, year), eq(documents.kind, "manual")))
+          .where(and(eq(documents.courseId, course.id), eq(documents.year, year), eq(documents.kind, kind)))
       : []
   const row = await db
     .insert(documents)
@@ -319,8 +324,9 @@ courseRoutes.post("/courses/:cid/documents", async (c) => {
     await db.delete(documents).where(inArray(documents.id, replaced.map((d) => d.id)))
     await c.env.FILES.delete(replaced.map((d) => d.r2Key))
   }
-  // A new manual is the common case for a fresh analysis; start it right away.
-  if (kind === "manual") await startAnalysis(c.env, db, programmeId, course.id, year)
+  // A new course description is the common case for a fresh analysis; start it right away.
+  // After supplementary uploads the course shows as stale, so several files can be added first.
+  if (singular) await startAnalysis(c.env, db, programmeId, course.id, year)
   notify(c, courseTopic(course.id), "courses", "programme")
   return c.json({ id: row.id }, 201)
 })
@@ -370,24 +376,71 @@ courseRoutes.post("/courses/:cid/analyze", validate("json", analyzeBody), async 
   return c.json({ ok: true })
 })
 
-/** Re-run analyses whose results are stale (e.g. after LTO narratives changed). */
-courseRoutes.post("/relink", validate("json", analyzeBody), async (c) => {
+/**
+ * Bring stale results up to date: analyses whose documents changed are redone completely;
+ * LTOs that changed since they were linked are re-linked (across all courses, one job per LTO).
+ */
+courseRoutes.post("/relink", async (c) => {
+  requireAdmin(c)
+  const db = c.get("db")
+  const programmeId = c.get("programmeId")
+  const analysisRows = await db
+    .select()
+    .from(analyses)
+    .where(and(eq(analyses.programmeId, programmeId), eq(analyses.hasResults, true)))
+  const staleness = await loadStaleness(db, programmeId, analysisRows.map((a) => a.id))
+  const busy = (a: (typeof analysisRows)[number]) => a.status === "running" || a.status === "queued"
+  let analysesStarted = 0
+  const staleLtos = new Set<number>()
+  for (const analysis of analysisRows) {
+    if (busy(analysis)) continue
+    if (staleness.documentsChanged(analysis)) {
+      await startAnalysis(c.env, db, programmeId, analysis.courseId, analysis.year)
+      analysesStarted++
+    } else {
+      for (const ltoId of staleness.staleLtos(analysis)) staleLtos.add(ltoId)
+    }
+  }
+  for (const ltoId of staleLtos) await startLtoRelink(c.env, db, ltoId, 0)
+  notify(c, "courses")
+  return c.json<RelinkResponse>({ analysesStarted, ltosRelinked: staleLtos.size })
+})
+
+// ── Study guide ─────────────────────────────────────────────────────────────
+
+/** Fetch a course's study guide page for a year and analyse the course with it. */
+courseRoutes.post("/courses/:cid/study-guide", validate("json", fetchStudyGuideBody), async (c) => {
+  const db = c.get("db")
+  const programmeId = c.get("programmeId")
+  const course = await getCourse(db, programmeId, intParam(c.req.param("cid")))
+  requireCourseEditor(c, course.id)
+  const { year, url } = c.req.valid("json")
+  await saveStudyGuide(c.env, db, { programmeId, course, year, url, uploadedBy: actorEmail(c) })
+  await startAnalysis(c.env, db, programmeId, course.id, year)
+  notify(c, courseTopic(course.id), "courses", "programme")
+  return c.json({ ok: true }, 201)
+})
+
+/** Fetch the study guide pages of all courses, using the programme's URL template. */
+courseRoutes.post("/study-guides/fetch", validate("json", analyzeBody), async (c) => {
   requireAdmin(c)
   const db = c.get("db")
   const programmeId = c.get("programmeId")
   const { year } = c.req.valid("json")
-  const [items, ltoHash, docHashes] = await Promise.all([
-    coursesWithAnalyses(db, programmeId, year),
-    currentLtoHash(db, programmeId),
-    documentsHashes(db, programmeId),
-  ])
-  let started = 0
-  for (const { current } of items) {
-    if (current && current.status !== "running" && current.status !== "queued" && isStale(current, ltoHash, docHashes)) {
-      await startAnalysis(c.env, db, programmeId, current.courseId, current.year)
-      started++
+  const programme = found(await db.select().from(programmes).where(eq(programmes.id, programmeId)).get())
+  if (!programme.studyGuideUrlTemplate) throw invalid("Set the study guide URL template in the settings first")
+  const courseRows = await db.select().from(courses).where(eq(courses.programmeId, programmeId))
+  const result: FetchStudyGuidesResponse = { fetched: 0, failed: [] }
+  for (const course of courseRows) {
+    const url = studyGuideUrl(programme.studyGuideUrlTemplate, course.code, year)
+    try {
+      const changed = await saveStudyGuide(c.env, db, { programmeId, course, year, url, uploadedBy: actorEmail(c) })
+      if (changed) await startAnalysis(c.env, db, programmeId, course.id, year)
+      result.fetched++
+    } catch (error) {
+      result.failed.push({ code: course.code, error: error instanceof Error ? error.message : "Failed" })
     }
   }
-  notify(c, "courses")
-  return c.json<RelinkResponse>({ started })
+  notify(c, "courses", "programme")
+  return c.json(result)
 })
